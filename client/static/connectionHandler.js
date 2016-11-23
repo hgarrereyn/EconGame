@@ -3,39 +3,11 @@ var servers = [
 	'localhost:3001'
 ];
 
-var CONN_STATE = {
-	//Status:
-	//0 - Not Connected
-	//1 - Connecting
-	//2 - Handshake complete, connected
-	status: 0,
-
-	//The websocket object
-	_ws: undefined,
-
-	//This client's nick
-	nick: undefined,
-
-	//This client's uuid (provided by the server during handshake)
-	uuid: undefined,
-
-	//The message handler for the client's connection
-	messageHandler: undefined
-};
-
-//Hook onto play button
-$('#play_button').click(function () {
-
-	var server = servers[0];
-	var nick = $('#nick').val();
-
-	connect(nick, server);
-
-});
-
 //An abstraction over the websocket connection
 //Register function triggers based on message type
 var MessageHandler = function (ws) {
+	var mh = this;
+
 	this.ws = ws;
 
 	this.triggers = {};
@@ -47,15 +19,15 @@ var MessageHandler = function (ws) {
 	}
 
 	this.ws.onmessage = function (msg) {
-		var obj = JSON.parse(msg);
+		var obj = JSON.parse(msg.data);
 
 		var type = obj.type;
 		var data = obj.data;
 
-		console.log("MessageHandler :: Got message of type: " + type);
+		//LOG: console.log("MessageHandler :: Got message of type: " + type);
 
-		if (this.triggers[type] != undefined) {
-			this.triggers[type](this.ws, data);
+		if (mh.triggers[type] != undefined) {
+			mh.triggers[type](mh.ws, data);
 		} else {
 			console.log("MessageHandler :: [ERROR] No attatched handler for message type!");
 		}
@@ -89,24 +61,28 @@ function connect(nick, server) {
 				}));
 
 				CONN_STATE.status = 2;
-				CONN_STATE.uuid = data.uuid;
+				CONN_STATE.id = data.id;
 
-				console.log('ConnectionHandler :: [Status 2] Handshake complete, recieved uuid: [' + CONN_STATE.uuid + ']');
+				console.log('ConnectionHandler :: [Status 2] Handshake complete, recieved uuid: [' + CONN_STATE.id + ']');
 
 				initializeGameScreen();
 
 			}
 
 		});
+
+		messageHandler.registerTrigger('SERVER_FULL', function (ws, data) {
+			console.log("Server full...");
+		})
 	}
 
 	ws.onclose = function () {
-		console.log('Connection closed');
+		console.log('ConnectionHandler :: Connection closed');
+		//alert('Connection closed');
 	}
-}
 
-//Hide the lobby and show the game screen
-function initializeGameScreen(){
-	$('#lobby_screen').removeClass('active');
-	$('#game_screen').addClass('active');
+	ws.onerror = function () {
+		console.log('ConnectionHandler :: Connection failed');
+		//alert('Connection failed');
+	}
 }

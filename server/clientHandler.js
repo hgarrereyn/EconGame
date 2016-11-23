@@ -19,9 +19,17 @@ var Client = function (id, conn) {
 		this.status = 1;
 		this.nick = nick;
 	}
+
+	this.send = function (obj) {
+		this._conn.sendText(JSON.stringify(obj));
+	}
 }
 
-var ClientHandler = function () {
+var ClientHandler = function (world, maxPlayers) {
+	var ch = this;
+
+	this.world = world;
+	this.maxPlayers = maxPlayers;
 
 	//Structure:
 	//
@@ -38,10 +46,26 @@ var ClientHandler = function () {
 	this.registerTrigger('PROVIDE_NICK', function (id, conn, data) {
 		var nick = data.nick;
 
-		if (this.clients[id].status == 0) {
-			this.clients[id].completeHandshake(nick);
+		if (ch.clients[id].status == 0) {
+			ch.clients[id].completeHandshake(nick);
+
+			//Spawn client in the world
+			ch.world.spawn(id, ch.clients[id]);
+
+			console.log('ClientHandler :: Completed handshake with id: [' + id + '] and nick: [' + nick + ']');
 		}
 	});
+
+	this.generatePlayerId = function () {
+		for (var i = 0; i < maxPlayers; ++i) {
+			if (ch.clients[i] == undefined) {
+				//open slot
+				return i;
+			}
+		}
+
+		return -1;
+	}
 
 	//Client triggers are of signature:
 	//(id, conn, data)
@@ -55,8 +79,8 @@ var ClientHandler = function () {
 			var type = obj.type;
 			var data = obj.data;
 
-			if (this.triggers[type] != undefined) {
-				this.triggers[type](id, _conn, data)
+			if (ch.triggers[type] != undefined) {
+				ch.triggers[type](id, _conn, data)
 			} else {
 				console.log('ClientHandler :: No handler found for message type: [' + type + ']');
 			}
@@ -64,25 +88,66 @@ var ClientHandler = function () {
 	}
 
 	this.connectClient = function (conn) {
-		//Generate uuid for client
-		var id = uuid();
 
-		var client = new Client(id, conn);
+		var id = this.generatePlayerId();
 
-		//Start tracking client
-		this.clients[id] = client;
+		if (id != -1) {
 
-		//Register triggers for client
-		this.registerConnectionTriggers(client);
+			var client = new Client(id, conn);
 
-		//Initiate handshake
-		conn.sendText(JSON.stringify({
-			type: 'REQUEST_NICK',
-			data: {
-				id: id
+			//Start tracking client
+			ch.clients[id] = client;
+
+			//Prepare for client close/crash
+			conn.on('close', function () {
+				console.log('ClientHandler :: client left: [' + id + ']');
+				delete ch.clients[id];
+				ch.world.removePlayer(id);
+			});
+
+			conn.on('error', function (err) {
+				console.log('ClientHandler :: [ERROR] client crashed: [' + id + ']');
+				delete ch.clients[id];
+				ch.world.removePlayer(id);
+			})
+
+			//Register triggers for client
+			this.registerConnectionTriggers(client);
+
+			//Initiate handshake
+			conn.sendText(JSON.stringify({
+				type: 'REQUEST_NICK',
+				data: {
+					id: id
+				}
+			}));
+
+		} else {
+
+			console.log('ClientHandler :: Client tried to connect, but server is full...');
+
+			conn.sendText(JSON.stringify({
+				type: 'SERVER_FULL',
+				apology: 'sorry...',
+				sad_face: ':('
+			}));
+
+			conn.on('close', function () {});
+
+			conn.on('error', function () {});
+
+		}
+
+	}
+
+	this.broadcast = function (obj) {
+		for (var id in this.clients) {
+			var client = this.clients[id];
+
+			if (client.status == 1) {
+				client.send(obj);
 			}
-		}));
-
+		}
 	}
 
 }
