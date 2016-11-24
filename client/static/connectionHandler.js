@@ -19,10 +19,19 @@ var MessageHandler = function (ws) {
 	}
 
 	this.ws.onmessage = function (msg) {
-		var obj = JSON.parse(msg.data);
+		var type = undefined;
+		var data = undefined;
 
-		var type = obj.type;
-		var data = obj.data;
+		if (msg.data.charCodeAt(0) == 0) {
+			//Delta packet
+			type = 'DELTA';
+			data = msg;
+		} else {
+			var obj = JSON.parse(msg.data);
+
+			type = obj.type;
+			data = obj.data;
+		}
 
 		//LOG: console.log("MessageHandler :: Got message of type: " + type);
 

@@ -23,6 +23,10 @@ var Client = function (id, conn) {
 	this.send = function (obj) {
 		this._conn.sendText(JSON.stringify(obj));
 	}
+
+	this.sendRaw = function (raw) {
+		this._conn.sendText(raw);
+	}
 }
 
 var ClientHandler = function (world, maxPlayers) {
@@ -56,6 +60,10 @@ var ClientHandler = function (world, maxPlayers) {
 		}
 	});
 
+	this.registerTrigger('CONTROL', function (id, conn, data) {
+		ch.world.controlSignal(id, data);
+	});
+
 	this.generatePlayerId = function () {
 		for (var i = 0; i < maxPlayers; ++i) {
 			if (ch.clients[i] == undefined) {
@@ -74,16 +82,24 @@ var ClientHandler = function (world, maxPlayers) {
 		var _conn = client._conn;
 
 		_conn.on('text', function (msg) {
-			var obj = JSON.parse(msg);
+			var type = undefined;
+			var data = undefined;
 
-			var type = obj.type;
-			var data = obj.data;
+			if (msg.length == 1){ //control signals are only one byte
+				type = 'CONTROL';
+				data = msg;
+			} else {
+				var obj = JSON.parse(msg);
+				var type = obj.type;
+				var data = obj.data;
+			}
 
 			if (ch.triggers[type] != undefined) {
 				ch.triggers[type](id, _conn, data)
 			} else {
 				console.log('ClientHandler :: No handler found for message type: [' + type + ']');
 			}
+
 		});
 	}
 
@@ -146,6 +162,16 @@ var ClientHandler = function (world, maxPlayers) {
 
 			if (client.status == 1) {
 				client.send(obj);
+			}
+		}
+	}
+
+	this.broadcastRaw = function (raw) {
+		for (var id in this.clients) {
+			var client = this.clients[id];
+
+			if (client.status == 1) {
+				client.sendRaw(raw);
 			}
 		}
 	}

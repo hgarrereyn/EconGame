@@ -4,6 +4,7 @@
 
 
 var Controller = function () {
+	var that = this;
 
 	//Keys to send to server (motion and action controls)
 	var keybinding = {
@@ -14,7 +15,7 @@ var Controller = function () {
 		'Space': 'action'
 	};
 
-	var keysDown = {
+	this.keysDown = {
 		'up': false,
 		'left': false,
 		'right': false,
@@ -31,16 +32,16 @@ var Controller = function () {
 	this.init = function () {
 		window.onkeydown = function (e) {
 			if (_isControllerKey(e.code)) {
-				if (keysDown[keybinding[e.code]] == false){
-					keysDown[keybinding[e.code]] = true;
+				if (that.keysDown[keybinding[e.code]] == false){
+					that.keysDown[keybinding[e.code]] = true;
 				}
 			}
 		}
 
 		window.onkeyup = function (e) {
 			if (_isControllerKey(e.code)) {
-				if (keysDown[keybinding[e.code]] == true){
-					keysDown[keybinding[e.code]] = false;
+				if (that.keysDown[keybinding[e.code]] == true){
+					that.keysDown[keybinding[e.code]] = false;
 				}
 			}
 		}

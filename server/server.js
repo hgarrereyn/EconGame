@@ -10,14 +10,9 @@ var clientHandler = new ClientHandler(world, 100);
 
 //Broadcast world state at 20Hz
 timer.every(50, function (rep) {
-	var worldMessage = {
-		type: 'UPDT',
-		data: {
-			world: world.exportAll(),
-			frame: rep
-		}
-	};
-	clientHandler.broadcast(worldMessage);
+	var worldDelta = world.encodeDelta();
+	clientHandler.broadcastRaw(worldDelta);
+	world.simulate(.05);
 });
 
 

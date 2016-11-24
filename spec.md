@@ -69,9 +69,13 @@ An item delta packet.
 
 **Format for a new item:**
 
-    [id]-[id] [type] [posX]-[posX] [posY]-[posY]
+    [id]-[id] [posX]-[posX] [posY]-[posY] [type]
 
 * `id`: the id of the item (unique in this case)
+
+* `posX`: the item X coordinate
+
+* `posY`: the item Y coordinate
 
 * `type`: the type of item or resource:
 
@@ -83,11 +87,6 @@ An item delta packet.
 	10: resource 2
 	11: resource 3
 
-* `posX`: the item X coordinate
-
-* `posY`: the item Y coordinate
-
-
 
 **Format for an existing item:**
 
@@ -96,6 +95,14 @@ An item delta packet.
 * `id`: the item id (recognized)
 
 *This packet indicates that the item has been acquired (removed)*
+
+# Server limits
+
+* The maximum player count may not exceed 256
+
+* The maximum item count may not exceed 65554
+
+* No more than 256 items may be created/destroyed per tick
 
 # Client Control - Movement
 
