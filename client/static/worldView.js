@@ -8,8 +8,42 @@ var WorldView = function () {
 	this.removePlayers = [];
 	this.removeItems = [];
 
-	this.loadFullState = function (data) {
+	this.loadInitial = function (data) {
+		var d = data.split('').map(x => x.charCodeAt(0));
 
+		//TODO: maybe don't do a full reset in the future, idk...
+		this.players = {};
+		this.items = {};
+
+		var pInitialCount = d[1];
+		var iInitialCount = (d[2] << 8) + d[3];
+
+		var i = 4;
+
+		for (var player = 0; player < pInitialCount; ++player) {
+			var id = d[i++];
+			var nick_length = d[i++];
+			var nick = data.substr(i, nick_length);
+			i += nick_length;
+
+			var posX = ((d[i++] << 8) + (d[i++])) / 100;
+			var posY = ((d[i++] << 8) + (d[i++])) / 100;
+
+			var playerView = new PlayerView(id, nick, [posX, posY]);
+			this.players[id] = playerView;
+		}
+
+		for (var item = 0; item < iInitialCount; ++item) {
+			var id = (d[i++] << 8) + d[i++];
+			var posX = ((d[i++] << 8) + (d[i++])) / 100;
+			var posY = ((d[i++] << 8) + (d[i++])) / 100;
+			var type = d[i++];
+
+			var itemView = new ItemView(id, [posX, posY], type);
+			this.items[id] = itemView;
+		}
+
+		this.hasState = true;
 	}
 
 	this.newPlayer = function (data) {
@@ -24,7 +58,7 @@ var WorldView = function () {
 
 		var i = 3;
 
-		for (var p = 0; p < pDeltaCount; ++p) {
+		for (var player = 0; player < pDeltaCount; ++player) {
 			var id = d[i++];
 
 			var playerView = this.players[id];
@@ -53,19 +87,44 @@ var WorldView = function () {
 				playerView.actionBar = actionBar;
 			}
 		}
+
+		for (var item = 0; item < iDeltaCount; ++item) {
+			var id = (d[i++] << 8) + d[i++];
+
+			if (this.items[id] == undefined) {
+				//item was created
+
+				//TODO: spawn animation
+
+				var posX = ((d[i++] << 8) + (d[i++])) / 100;
+				var posY = ((d[i++] << 8) + (d[i++])) / 100;
+				var type = d[i++];
+
+				var itemView = new ItemView(id, [posX, posY], type);
+				this.items[id] = itemView;
+			} {
+				//item was consumed
+
+				//TODO: destroy animation
+
+				this.items[id] = undefined;
+			}
+
+
+		}
 	}
 
 }
 
-var PlayerView = function (id, pos, nick) {
+var PlayerView = function (id, nick, pos) {
 	this.id = id;
 	this.nick = nick;
-
 	this.pos = pos;
 	this.actionBar = 0;
 }
 
-var ItemView = function (id, pos) {
+var ItemView = function (id, pos, type) {
 	this.id = id;
 	this.pos = pos;
+	this.type = type;
 }

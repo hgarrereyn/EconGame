@@ -23,9 +23,17 @@ var MessageHandler = function (ws) {
 		var data = undefined;
 
 		if (msg.data.charCodeAt(0) == 0) {
+
 			//Delta packet
 			type = 'DELTA';
-			data = msg;
+			data = msg.data;
+
+		} else if (msg.data.charCodeAt(0) == 1) {
+
+			//Initial packet
+			type = 'INITIAL';
+			data = msg.data;
+
 		} else {
 			var obj = JSON.parse(msg.data);
 

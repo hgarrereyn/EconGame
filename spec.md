@@ -20,15 +20,43 @@
 
 # Initial Game State
 
-The server will broadcast a (big) frame containing the entire game state after the handshake completes.
+The server will broadcast a frame containing the entire game state after the handshake completes.
 
-* Current position and types of resources
+    [00000001] [num p] [num i]-[num i] [pInitial] ... [iInitial] ...
+
+## pInitial
+
+A player initial packet
+
+    [id] [nick_length] [nick]-...-[nick] [posX]-[posX] [posY]-[posY]
+
+## iInitial
+
+An item initial packet
+
+    [id]-[id] [posX]-[posX] [posY]-[posY] [type]
+
+* `id`: the id of the item (unique in this case)
+
+* `posX`: the item X coordinate
+
+* `posY`: the item Y coordinate
+
+* `type`: the type of item or resource:
+
+
+000000xx
+
+00: resource 0
+01: resource 1
+10: resource 2
+11: resource 3
 
 # Delta Game State
 
-After the initial game state, the server will broadcast changes to the game state at ~20Hz. These messages can be of varying length but must begin with the following header: `10000000`. Any number of delta packets can be chained after the header in the following format:
+After the initial game state, the server will broadcast changes to the game state at ~20Hz. These messages can be of varying length but must begin with the following header: `00000000`. Any number of delta packets can be chained after the header in the following format:
 
-    [header] [num p] [num i] [pDelta] ... [iDelta] ...
+    [00000000] [num p] [num i] [pDelta] ... [iDelta] ...
 
 ## pDelta
 
@@ -67,7 +95,7 @@ A player delta packet.
 
 An item delta packet.
 
-**Format for a new item:**
+**Format for a new item (same as an iInitial packet):**
 
     [id]-[id] [posX]-[posX] [posY]-[posY] [type]
 

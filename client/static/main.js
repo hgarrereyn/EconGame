@@ -28,6 +28,8 @@ $('#play_button').click(function () {
 
 });
 
+var _game = undefined;
+
 //Hide the lobby and show the game screen
 function initializeGameScreen(){
 	$('#lobby_screen').removeClass('active');
@@ -37,6 +39,6 @@ function initializeGameScreen(){
 	$('#id_tag').text(CONN_STATE.id);
 
 	//Pass control to game.js
-	var game = new Game();
-	game.init();
+	_game = new Game();
+	_game.init();
 }

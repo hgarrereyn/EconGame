@@ -77,6 +77,34 @@ var World = function (width, height) {
 		}
 	}
 
+	this.encodeInitial = function () {
+		var iString = String.fromCharCode(1);
+
+		var pInitialCount = 0;
+		var pInitialString = '';
+
+		for (var id in this.players) {
+			pInitialCount++;
+			pInitialString += this.players[id].encodeInitial();
+		}
+
+		var iInitialCount = 0;
+		var iInitialString = '';
+
+		for (var id in this.items) {
+			iInitialCount++;
+			iInitialString += this.items[id].encodeInitial();
+		}
+
+		iString += String.fromCharCode(pInitialCount);
+		iString += String.fromCharCode((iInitialCount & 0xFF00) >> 8);
+		iString += String.fromCharCode(iInitialCount & 0xFF);
+		iString += pInitialString;
+		iString += iInitialString;
+
+		return iString;
+	}
+
 	this.encodeDelta = function () {
 		var dString = String.fromCharCode(0);
 
@@ -124,6 +152,20 @@ var Item = function (pos, type, id) {
 
 	this._hasDelta = function () {
 		return this._new || this._consumed;
+	}
+
+	this.encodeInitial = function () {
+		var d = [];
+
+		var id1 = (this.id & 0xFF00) >> 8;
+		var id2 = (this.id & 0xFF);
+
+		d.push(id1, id2); //id can occupy two bytes
+		d.push(..._encodePos(this.pos[0]));
+		d.push(..._encodePos(this.pos[1]));
+		d.push(this.type);
+
+		return d.map(x => String.fromCharCode(x)).join('');
 	}
 
 	this.encodeDelta = function () {
@@ -222,6 +264,18 @@ var Player = function (pos, nick, id) {
 			|| this._playerKilled
 			|| this._animate
 		)
+	}
+
+	this.encodeInitial = function () {
+		var d = [];
+
+		d.push(id);
+		d.push(this.nick.length);
+		d.push(...this.nick.split('').map(x => x.charCodeAt(0)));
+		d.push(..._encodePos(this.pos[0]));
+		d.push(..._encodePos(this.pos[1]));
+
+		return d.map(x => String.fromCharCode(x)).join('');
 	}
 
 	//Return the player's delta packet as a string

@@ -48,13 +48,18 @@ var ClientHandler = function (world, maxPlayers) {
 	}
 
 	this.registerTrigger('PROVIDE_NICK', function (id, conn, data) {
-		var nick = data.nick;
+		var nick = data.nick.substr(0,50); //arbitrary limit TODO: figure out if there is a unicode exploit here
 
 		if (ch.clients[id].status == 0) {
+
+			//Change the client status and set the nick
 			ch.clients[id].completeHandshake(nick);
 
 			//Spawn client in the world
 			ch.world.spawn(id, ch.clients[id]);
+
+			//Send an initial packet with item locations and player names
+			ch.clients[id].sendRaw(world.encodeInitial());
 
 			console.log('ClientHandler :: Completed handshake with id: [' + id + '] and nick: [' + nick + ']');
 		}
@@ -72,6 +77,7 @@ var ClientHandler = function (world, maxPlayers) {
 			}
 		}
 
+		//No available id
 		return -1;
 	}
 

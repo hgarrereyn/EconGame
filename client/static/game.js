@@ -1,16 +1,21 @@
 var Game = function () {
-	var controller = new Controller();
-	var timer = new Timer();
+
+	var that = this;
+
+	this.controller = new Controller();
+	this.timer = new Timer();
+	this.worldView = new WorldView();
 
 	this.init = function () {
-		controller.init();
+		that.controller.init();
 
-		CONN_STATE.messageHandler.registerTrigger('UPDT', function (ws, data) {
-			console.log('Game :: Received full state update...');
+		CONN_STATE.messageHandler.registerTrigger('INITIAL', function (ws, data) {
+			that.worldView.loadInitial(data);
 		});
 
 		CONN_STATE.messageHandler.registerTrigger('DELTA', function (ws, data) {
-			ws.send(controller.sample());
+			that.worldView.loadDelta(data);
+			ws.send(that.controller.sample());
 		})
 	}
 
