@@ -5,8 +5,19 @@ var WorldView = function () {
 	this.players = {}
 	this.items = {}
 
+	this.addPlayers = [];
+	this.addItems = [];
+
 	this.removePlayers = [];
 	this.removeItems = [];
+
+	this.destroyPlayer = function (id) {
+		delete this.players[id];
+	}
+
+	this.destroyItem = function (id) {
+		delete this.items[id];
+	}
 
 	this.loadInitial = function (data) {
 		var d = data.split('').map(x => x.charCodeAt(0));
@@ -31,6 +42,7 @@ var WorldView = function () {
 
 			var playerView = new PlayerView(id, nick, [posX, posY]);
 			this.players[id] = playerView;
+			this.addPlayers.push(id);
 		}
 
 		for (var item = 0; item < iInitialCount; ++item) {
@@ -46,10 +58,6 @@ var WorldView = function () {
 		this.hasState = true;
 	}
 
-	this.newPlayer = function (data) {
-
-	}
-
 	this.loadDelta = function (data) {
 		var d = data.split('').map(x => x.charCodeAt(0));
 
@@ -61,30 +69,61 @@ var WorldView = function () {
 		for (var player = 0; player < pDeltaCount; ++player) {
 			var id = d[i++];
 
-			var playerView = this.players[id];
-
 			var contents = d[i++];
 
-			var _posX = (contents & 0b1);
-			var _posY = (contents & 0b10);
-			var _actionBar = (contents & 0b100);
+			var _posX = (contents & (1 << 0));
+			var _posY = (contents & (1 << 1));
+			var _actionBar = (contents & (1 << 2));
 			//var _animation = (contents & 0b1000);
+			var _new = (contents & (1 << 6));
+			var _playerKilled = (contents & (1 << 7));
 
-			//var _playerDied = (contents & 0b1000000);
+			var posX = undefined;
+			var posY = undefined;
+			var actionBar = undefined;
+			var nick = undefined;
 
 			if (_posX) {
-				var posX = ((d[i++] << 8) + (d[i++])) / 100;
-				playerView.pos[0] = posX;
+				posX = ((d[i++] << 8) + (d[i++])) / 100;
 			}
 
 			if (_posY) {
-				var posY = ((d[i++] << 8) + (d[i++])) / 100;
-				playerView.pos[1] = posY;
+				posY = ((d[i++] << 8) + (d[i++])) / 100;
 			}
 
 			if (_actionBar) {
-				var actionBar = (d[i++] / 100)
+				actionBar = (d[i++] / 100)
+			}
+
+			if (_new) {
+				var nick_length = d[i++];
+				nick = data.substr(i,nick_length);
+				i += nick_length;
+			}
+
+			if (_new) {
+				//make sure this isn't a sneaky duplicate
+
+				if (this.addPlayers.indexOf(id) == -1 && this.players[id] == undefined) {
+					this.addPlayers.push(id);
+				}
+
+				var playerView = new PlayerView(id, nick, [posX, posY]);
 				playerView.actionBar = actionBar;
+				this.players[id] = playerView;
+
+			} else if (_playerKilled) {
+
+				var playerView = this.players[id];
+				playerView.killed = true; //the Game object will graphically represent this and then destroy the player
+
+			} {
+
+				var playerView = this.players[id];
+				if (_posX) playerView.pos[0] = posX;
+				if (_posY) playerView.pos[1] = posY;
+				if (_actionBar) playerView.actionBar = actionBar;
+
 			}
 		}
 
@@ -121,6 +160,9 @@ var PlayerView = function (id, nick, pos) {
 	this.nick = nick;
 	this.pos = pos;
 	this.actionBar = 0;
+
+	this.trackingPos = [pos[0], pos[1]];
+	this.killed = false;
 }
 
 var ItemView = function (id, pos, type) {

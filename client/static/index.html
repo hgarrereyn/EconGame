@@ -8,13 +8,26 @@
 	<body>
 
 		<div class="screen active" id="lobby_screen">
-			<h1>Enter a nickname to play:</h1>
-			<input id="nick" type="text"/>
-			<button id="play_button">Play</button>
+			<div class="panel">
+				<h1>Enter a nickname to play:</h1>
+			</div>
+
+			<div class="panel">
+				<input id="nick" type="text"/>
+				<button id="play_button">Play</button>
+			</div>
 		</div>
 
 		<div class="screen" id="game_screen">
-			<h4>Nick: [<span id="nick_tag"></span>] ID: [<span id="id_tag"></span>]</h4>
+			<div id="graphics_panel"></div>
+			<div id="info_bar">
+				<div style='float:left;'>
+					<span><span id="track-nick">-</span> [<span id="track-id">-</span>]</span>
+				</div>
+				<div style='float:right;'>
+					<span>(<span id="track-posX">0</span>, <span id="track-posY">0</span>)</span>
+				</div>
+			</div>
 		</div>
 
 		<script src="jquery-3.1.1.min.js"></script>

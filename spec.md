@@ -62,19 +62,20 @@ After the initial game state, the server will broadcast changes to the game stat
 
 A player delta packet.
 
-    [id] [contents] [posX]-[posX]? [posY]-[posY]? [action bar]? [animation]?
+    [id] [contents] [posX]-[posX]? [posY]-[posY]? [action bar]? [animation]? [nick_length]? [nick]...[nick]
 
 * `id`: the player's id (in range 0-255 inclusive)
 
 * `contents`: describes the packet contents in this format:
 
 
-    x000xxxx
-	|   ||||
-	|   |||Contains posX (2 bytes)
-	|   ||Contains posY (2 bytes)
-	|   |Contains action bar (1 byte)
-	|   Contains at least one animation (1 byte)
+    xx00xxxx
+	||  ||||
+	||  |||Contains posX (2 bytes)
+	||  ||Contains posY (2 bytes)
+	||  |Contains action bar (1 byte)
+	||  Contains at least one animation (1 byte)
+	|Player just joined (contains nick as well)
 	Player was killed (pDelta == 2 bytes)
 
 * `posX`: the player X coordinate (as a part of the total width)
@@ -89,6 +90,8 @@ A player delta packet.
     0000000x
 	       |
            resource acquired
+
+* `nick_length`/`nick`: if the player just joined, this packet will contain the new nick
 
 
 ## iDelta

@@ -41,4 +41,5 @@ function initializeGameScreen(){
 	//Pass control to game.js
 	_game = new Game();
 	_game.init();
+	_game.initGraphics();
 }

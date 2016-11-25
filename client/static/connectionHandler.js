@@ -1,6 +1,6 @@
 //List of possible servers
 var servers = [
-	'localhost:3001'
+	'192.168.1.10:3001'
 ];
 
 //An abstraction over the websocket connection

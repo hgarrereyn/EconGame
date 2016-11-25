@@ -39,7 +39,7 @@ var World = function (width, height) {
 	}
 
 	this.removePlayer = function (id) {
-		delete this.players[id];
+		this.players[id].markForDeletion();
 	}
 
 	//TODO: better spawn detection
@@ -74,6 +74,10 @@ var World = function (width, height) {
 			var moveH = player.controlSignal.right - player.controlSignal.left;
 
 			player.moveWithBounds(moveH * dt, moveV * dt, 0, 0, this.width, this.height);
+
+			if (player._broadcastPlayerKilled) {
+				delete this.players[id];
+			}
 		}
 	}
 
@@ -214,8 +218,12 @@ var Player = function (pos, nick, id) {
 	this._posXChanged = false;
 	this._posYChanged = false;
 	this._actionBarChanged = false
-	this._playerKilled = false;
 	this._animate = false;
+
+	this._new = true; //starts true
+	this._playerKilled = false; //or disconnected
+	this._broadcastPlayerKilled = false; //true once the kill message has been broadcasted
+	this.markForDeletion = function () {this._playerKilled = true;}
 
 	//animations:
 	this._animateResourceComplete = false;
@@ -263,6 +271,7 @@ var Player = function (pos, nick, id) {
 			|| this._actionBarChanged
 			|| this._playerKilled
 			|| this._animate
+			|| this._new
 		)
 	}
 
@@ -290,6 +299,22 @@ var Player = function (pos, nick, id) {
 		if (this._playerKilled) {
 			contents += (1 << 7);
 			d.push(contents);
+
+			this._broadcastPlayerKilled = true;
+		} else if (this._new) {
+			contents += (1 << 0); //posX
+			contents += (1 << 1); //posY
+			contents += (1 << 2); //action_bar
+			contents += (1 << 6); //just joined, nick
+
+			d.push(contents);
+			d.push(..._encodePos(this.pos[0]));
+			d.push(..._encodePos(this.pos[1]));
+			d.push(_encodeActionBar(this.actionBar));
+			d.push(this.nick.length);
+			d.push(...this.nick.split('').map(x => x.charCodeAt(0)));
+
+			this._new = false;
 		} else {
 			contents += (this._posXChanged << 0);
 			contents += (this._posYChanged << 1);
