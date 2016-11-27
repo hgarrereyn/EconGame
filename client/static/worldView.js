@@ -53,6 +53,7 @@ var WorldView = function () {
 
 			var itemView = new ItemView(id, [posX, posY], type);
 			this.items[id] = itemView;
+			this.addItems.push(id);
 		}
 
 		this.hasState = true;
@@ -92,7 +93,7 @@ var WorldView = function () {
 			}
 
 			if (_actionBar) {
-				actionBar = (d[i++] / 100)
+				actionBar = (d[i++] / 100);
 			}
 
 			if (_new) {
@@ -141,6 +142,10 @@ var WorldView = function () {
 
 				var itemView = new ItemView(id, [posX, posY], type);
 				this.items[id] = itemView;
+
+				if (this.addItems.indexOf(id) == -1) {
+					this.addItems.push(id);
+				}
 			} {
 				//item was consumed
 
@@ -158,10 +163,13 @@ var WorldView = function () {
 var PlayerView = function (id, nick, pos) {
 	this.id = id;
 	this.nick = nick;
-	this.pos = pos;
-	this.actionBar = 0;
 
+	this.pos = pos;
 	this.trackingPos = [pos[0], pos[1]];
+
+	this.actionBar = 0;
+	this.trackingActionBar = 0;
+
 	this.killed = false;
 }
 

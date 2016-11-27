@@ -14,7 +14,7 @@ function _encodePos (p) {
 
 //Encode action bar per 1%
 function _encodeActionBar (b) {
-	var m = Math.floor(b);
+	var m = Math.floor(b * 100);
 	m = Math.max(0,m);
 	m = Math.min(100,m);
 
@@ -30,12 +30,30 @@ var World = function (width, height) {
 	this.items = {};
 	this.players = {};
 
+	/*
+	 * 0: News/Allocate ()
+	 * 1: Gameplay (3m)
+	 * 2: Results (10s)
+	 */
+	this.state = 0;
+
 	this.spawn = function (id, client) {
 		var pos = this._getSpawnLocation();
 		var player = new Player(pos, client.nick, client.id);
 		this.players[id] = player;
 
 		console.log('World :: Spawned [' + client.nick + '] at [' + pos[0] + ', ' + pos[1] + ']');
+	}
+
+	this.initItems = function () {
+		for (var i = 0; i < 1000; ++i) {
+			var pos = this._getSpawnLocation();
+			var type = Math.floor(Math.random() * 4);
+			var id = i;
+
+			var item = new Item(pos, type, id);
+			this.items[id] = item;
+		}
 	}
 
 	this.removePlayer = function (id) {
@@ -45,6 +63,14 @@ var World = function (width, height) {
 	//TODO: better spawn detection
 	this._getSpawnLocation = function () {
 		return [Math.random() * this.width, Math.random() * this.height];
+	}
+
+	//TODO: Items can't be within 1 unit of eachother
+	this._getItemSpawnLocation = function () {
+		var x = Math.floor(Math.random() * this.width * 10) / 10;
+		var y = Math.floor(Math.random() * this.height * 10) / 10;
+
+		return [x,y];
 	}
 
 	this.addItem = function (id, item) {
@@ -74,6 +100,10 @@ var World = function (width, height) {
 			var moveH = player.controlSignal.right - player.controlSignal.left;
 
 			player.moveWithBounds(moveH * dt, moveV * dt, 0, 0, this.width, this.height);
+
+			player.actionBar += 0.01;
+			player.actionBar %= 1;
+			player._actionBarChanged = true;
 
 			if (player._broadcastPlayerKilled) {
 				delete this.players[id];
@@ -126,7 +156,7 @@ var World = function (width, height) {
 		var iDeltaString = '';
 
 		for (var id in this.items) {
-			if (this.item[id].hasDelta()) {
+			if (this.items[id].hasDelta()) {
 				iDeltaCount++;
 				iDeltaString += this.items[id].encodeDelta();
 			}
@@ -151,10 +181,10 @@ var Item = function (pos, type, id) {
 	//mutually exclusive, max 2 bytes
 	this.id = id;
 
-	this._new = false;
+	this._new = true;
 	this._consumed = false;
 
-	this._hasDelta = function () {
+	this.hasDelta = function () {
 		return this._new || this._consumed;
 	}
 
@@ -184,6 +214,8 @@ var Item = function (pos, type, id) {
 			d.push(..._encodePos(this.pos[0]));
 			d.push(..._encodePos(this.pos[1]));
 			d.push(this.type);
+
+			this._new = false;
 		}
 
 		return d.map(x => String.fromCharCode(x)).join('');
@@ -204,6 +236,9 @@ var Player = function (pos, nick, id) {
 	//the percentage complete of the action bar
 	this.actionBar = 0; //0(empty) to 1(full)
 
+	this.technology = 0; //technology level
+	this.workers = 0; //number of workers
+
 	this.controlSignal = {
 		up: false,
 		left: false,
@@ -212,7 +247,7 @@ var Player = function (pos, nick, id) {
 		action: false
 	};
 
-	this.attrSpeed = 1;
+	this._speed = 1;
 
 	//Helper variables for determining delta packets
 	this._posXChanged = false;
@@ -230,7 +265,7 @@ var Player = function (pos, nick, id) {
 
 	this.moveWithBounds = function (dx, dy, x0, y0, width, height) {
 		if (dx != 0) {
-			var x = this.pos[0] + (dx * this.attrSpeed);
+			var x = this.pos[0] + (dx * this._speed);
 			x = Math.min(Math.max(x0,x),width);
 
 			if (x != this.pos[0]) {
@@ -240,7 +275,7 @@ var Player = function (pos, nick, id) {
 		}
 
 		if (dy != 0) {
-			var y = this.pos[1] + (dy * this.attrSpeed);
+			var y = this.pos[1] + (dy * this._speed);
 			y = Math.min(Math.max(y0,y),height);
 
 			if (y != this.pos[1]) {

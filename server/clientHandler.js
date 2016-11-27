@@ -120,17 +120,25 @@ var ClientHandler = function (world, maxPlayers) {
 			//Start tracking client
 			ch.clients[id] = client;
 
+			var connClosed = false;
+
 			//Prepare for client close/crash
 			conn.on('close', function () {
 				console.log('ClientHandler :: client left: [' + id + ']');
-				delete ch.clients[id];
-				ch.world.removePlayer(id);
+				if (connClosed == false) {
+					delete ch.clients[id];
+					ch.world.removePlayer(id);
+					connClosed = true;
+				}
 			});
 
 			conn.on('error', function (err) {
 				console.log('ClientHandler :: [ERROR] client crashed: [' + id + ']');
-				delete ch.clients[id];
-				ch.world.removePlayer(id);
+				if (connClosed == false) {
+					delete ch.clients[id];
+					ch.world.removePlayer(id);
+					connClosed = true;
+				}
 			})
 
 			//Register triggers for client
