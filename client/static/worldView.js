@@ -151,7 +151,7 @@ var WorldView = function () {
 
 				//TODO: destroy animation
 
-				this.items[id] = undefined;
+				this.items[id].consumed = true;
 			}
 
 
@@ -177,4 +177,6 @@ var ItemView = function (id, pos, type) {
 	this.id = id;
 	this.pos = pos;
 	this.type = type;
+
+	this.consumed = false;
 }

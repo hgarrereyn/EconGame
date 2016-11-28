@@ -18,8 +18,6 @@ var Scenario = function () {
 	this.capitalUpfront = 0;
 	this.capitalMaintenance = 0;
 
-
-
 	this.generate = function () {
 
 	}

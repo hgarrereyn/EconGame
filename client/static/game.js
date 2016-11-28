@@ -187,6 +187,12 @@ var Game = function () {
 			var item = that.worldView.items[id];
 
 			updateItem(c.itemGraphics[id], item, thisPlayer);
+
+			if (item.consumed) {
+				c.itemGraphics[id].parent.remove(c.itemGraphics[id]);
+				delete c.playerGraphics[id];
+				that.worldView.destroyItem(id);
+			}
 		}
 
 	}

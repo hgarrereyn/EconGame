@@ -21,6 +21,24 @@ function _encodeActionBar (b) {
 	return m;
 }
 
+var _spawnPoints = 100;
+
+var _initialFarmingTime = 5; //5 seconds
+var _initialInventory = 10; //inventory farmed
+var _inventoryDeviation = 0.2; //inv +- 10%
+
+//Time to complete as a function of tech level
+function _timeToComplete (technology) {
+	return _initialFarmingTime / (1 + (technology/3));
+}
+
+function _inventoryFarmed (workers) {
+	var inv = ((1 + Math.log(workers + 1)) * _initialInventory) * ((Math.random() * _inventoryDeviation * 2) - _inventoryDeviation + 1);
+	inv = Math.floor(inv);
+
+	return inv;
+}
+
 //An entire collection of resources + functions over time
 var World = function (width, height) {
 
@@ -30,6 +48,11 @@ var World = function (width, height) {
 	this.items = {};
 	this.players = {};
 
+	//the simulate() method adds ids to this list and clears it once these
+	//objects have broadasted their state (which happens in the next loop)
+	this.itemsToRemove = [];
+	this.playersToRemove = [];
+
 	/*
 	 * 0: News/Allocate ()
 	 * 1: Gameplay (3m)
@@ -38,16 +61,17 @@ var World = function (width, height) {
 	this.state = 0;
 
 	this.spawn = function (id, client) {
-		var pos = this._getSpawnLocation();
+		var pos = this._getPlayerSpawnLocation();
 		var player = new Player(pos, client.nick, client.id);
 		this.players[id] = player;
 
 		console.log('World :: Spawned [' + client.nick + '] at [' + pos[0] + ', ' + pos[1] + ']');
 	}
 
+	//Temporary
 	this.initItems = function () {
 		for (var i = 0; i < 1000; ++i) {
-			var pos = this._getSpawnLocation();
+			var pos = this._getItemSpawnLocation();
 			var type = Math.floor(Math.random() * 4);
 			var id = i;
 
@@ -56,12 +80,20 @@ var World = function (width, height) {
 		}
 	}
 
-	this.removePlayer = function (id) {
+	//Mark a player for deletion
+	this.deletePlayer = function (id) {
 		this.players[id].markForDeletion();
+		this.playersToRemove.push(id);
+	}
+
+	//Mark an item for deletion
+	this.deleteItem = function (id) {
+		this.items[id].markForDeletion();
+		this.itemsToRemove.push(id);
 	}
 
 	//TODO: better spawn detection
-	this._getSpawnLocation = function () {
+	this._getPlayerSpawnLocation = function () {
 		return [Math.random() * this.width, Math.random() * this.height];
 	}
 
@@ -73,24 +105,61 @@ var World = function (width, height) {
 		return [x,y];
 	}
 
+	//Returns the id of an object within 0.5 units of player, or -1 if no item
+	//can be found
+	//
+	//TODO: Store items in chuncks to speed up search algorithm
+	this._getItemInRange = function (player) {
+		var pos = player.pos;
+
+		//test _lastItem first
+		if (player._lastItem != -1) {
+			var item = this.items[player._lastItem];
+			var dx = item.pos[0] - pos[0];
+			var dy = item.pos[1] - pos[1];
+
+			if (0.25 >= (dx * dx) + (dy * dy)) {
+				return player._lastItem;
+			}
+		}
+
+		//test other items
+		for (var id in this.items) {
+			var item = this.items[id];
+			var dx = item.pos[0] - pos[0];
+			var dy = item.pos[1] - pos[1];
+
+			if (0.25 >= (dx * dx) + (dy * dy)) {
+				return id;
+			}
+		}
+
+		return -1;
+	}
+
+	/*
 	this.addItem = function (id, item) {
 		this.items[id] = item;
 	}
+	*/
 
-	this.exportAll = function () {
-		return {
-			items: this.items,
-			players: this.players
-		}
-	}
-
+	//This method forwards the control signal from a client to its corresponding
+	//player object, which will store it for simulation
 	this.controlSignal = function (id, data) {
 		var player = this.players[id];
-
 		player.setControlSignal(data);
 	}
 
+	//Main physics loop
 	this.simulate = function (dt) {
+		//Garbage collection - remove dead players and items
+		for (var id in this.playersToRemove) { delete this.players[this.playersToRemove[id]]; }
+		this.playersToRemove = [];
+
+		for (var id in this.itemsToRemove) { delete this.items[this.itemsToRemove[id]]; }
+		this.itemsToRemove = [];
+
+
 		//Simulate players
 		for (var id in this.players) {
 			var player = this.players[id];
@@ -101,12 +170,26 @@ var World = function (width, height) {
 
 			player.moveWithBounds(moveH * dt, moveV * dt, 0, 0, this.width, this.height);
 
-			player.actionBar += 0.01;
-			player.actionBar %= 1;
-			player._actionBarChanged = true;
+			var item = this._getItemInRange(player);
 
-			if (player._broadcastPlayerKilled) {
-				delete this.players[id];
+			if (item != -1 && player.controlSignal.action) {
+				player.increaseActionBar(dt);
+
+				//check if complete
+				if (player.actionBar == 1) {
+					this.deleteItem(item);
+					player._lastItem = -1;
+					var type = this.items[item].type;
+
+					player.increaseInventory(type);
+				}
+
+			} else if (id != -1) {
+				player.actionBar *= 0.6;
+				player._actionBarChanged = true;
+			} else {
+				player.actionBar *= 0.3;
+				player._actionBarChanged = true;
 			}
 		}
 	}
@@ -183,6 +266,8 @@ var Item = function (pos, type, id) {
 
 	this._new = true;
 	this._consumed = false;
+	this.markForDeletion = function () { this._consumed = true; }
+	this._broadcastConsumed = false;
 
 	this.hasDelta = function () {
 		return this._new || this._consumed;
@@ -216,6 +301,8 @@ var Item = function (pos, type, id) {
 			d.push(this.type);
 
 			this._new = false;
+		} else {
+			this._broadcastConsumed = true;
 		}
 
 		return d.map(x => String.fromCharCode(x)).join('');
@@ -236,8 +323,15 @@ var Player = function (pos, nick, id) {
 	//the percentage complete of the action bar
 	this.actionBar = 0; //0(empty) to 1(full)
 
+	//--- Internal/Secret: ---
+
+	//id of the last item in range (for quicker searching)
+	this._lastItem = -1;
+
 	this.technology = 0; //technology level
 	this.workers = 0; //number of workers
+	this.points = 100; //initial points
+	this.inventory = [0,0,0,0];
 
 	this.controlSignal = {
 		up: false,
@@ -283,6 +377,26 @@ var Player = function (pos, nick, id) {
 				this._posYChanged = true;
 			}
 		}
+	}
+
+	this.increaseActionBar = function (dt) {
+		var time = _timeToComplete(this.technology);
+
+		var da = dt/time;
+
+		var newActionBar = Math.min(this.actionBar + da, 1);
+		if (this.actionBar != newActionBar){
+			this.actionBar = newActionBar;
+			this._actionBarChanged = true;
+		}
+	}
+
+	this.increaseInventory = function (type) {
+		var farmed = _inventoryFarmed(this.workers);
+
+		this.inventory[type] += farmed;
+
+		console.log(this.inventory);
 	}
 
 	this.setControlSignal = function (signal) {
@@ -388,6 +502,28 @@ var Player = function (pos, nick, id) {
 		return d.map(x => String.fromCharCode(x)).join('');
 	}
 
+	//Data to be sent to only this player
+	this.encodeSecret = function () {
+		var d = [];
+
+		d.push(2); //header
+
+		//points - 4 bytes
+		for (var i = 0; i < 4; ++i) {
+			var p = (this.points >> ((3-i) * 8)) & 0xFF;
+			d.push(p);
+		}
+
+		//inventory
+		for (var i = 0; i < 4; ++i) {
+			var inv = this.inventory[i];
+			var inv1 = (inv >> 8) & 0xFF;
+			var inv2 = inv & 0xFF;
+			d.push(inv1, inv2);
+		}
+
+		
+	}
 }
 
 module.exports = {

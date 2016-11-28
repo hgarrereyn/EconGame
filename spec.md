@@ -42,15 +42,7 @@ An item initial packet
 
 * `posY`: the item Y coordinate
 
-* `type`: the type of item or resource:
-
-
-000000xx
-
-00: resource 0
-01: resource 1
-10: resource 2
-11: resource 3
+* `type`: the type of item or resource (0-3)
 
 # Delta Game State
 
@@ -84,7 +76,7 @@ A player delta packet.
 
 * `action bar`: a player's action bar, percent complete out of total possible
 
-* `animation`: client should display some animation to indicate task completion:
+* `animation`: client should display some animation to indicate task completion: (*not implemented yet*)
 
 
     0000000x
@@ -127,6 +119,15 @@ An item delta packet.
 
 *This packet indicates that the item has been acquired (removed)*
 
+# Secret packets
+
+These are packets that are sent to individual players and contain any information that should only be seen by the individual.
+
+The format is the following:
+
+    [00000010] [points]x4 [inv res0]-[inv res0] ... [inv res3]-[inv res3] [technology] [workers]
+
+
 # Server limits
 
 * The maximum player count may not exceed 256
@@ -134,6 +135,8 @@ An item delta packet.
 * The maximum item count may not exceed 65554
 
 * No more than 256 items may be created/destroyed per tick
+
+* Technology level / worker count can not exceed 256
 
 # Client Control - Movement
 

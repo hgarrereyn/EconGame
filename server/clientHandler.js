@@ -127,7 +127,7 @@ var ClientHandler = function (world, maxPlayers) {
 				console.log('ClientHandler :: client left: [' + id + ']');
 				if (connClosed == false) {
 					delete ch.clients[id];
-					ch.world.removePlayer(id);
+					ch.world.deletePlayer(id);
 					connClosed = true;
 				}
 			});
@@ -136,7 +136,7 @@ var ClientHandler = function (world, maxPlayers) {
 				console.log('ClientHandler :: [ERROR] client crashed: [' + id + ']');
 				if (connClosed == false) {
 					delete ch.clients[id];
-					ch.world.removePlayer(id);
+					ch.world.deletePlayer(id);
 					connClosed = true;
 				}
 			})
