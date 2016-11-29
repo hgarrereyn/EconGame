@@ -190,6 +190,16 @@ var ClientHandler = function (world, maxPlayers) {
 		}
 	}
 
+	this.each = function (fn) {
+		for (var id in this.clients) {
+			var client = this.clients[id];
+
+			if (client.status == 1) {
+				fn(id, client);
+			}
+		}
+	}
+
 }
 
 module.exports = {

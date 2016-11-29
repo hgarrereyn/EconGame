@@ -66,3 +66,34 @@ body {
 	line-height: 50px;
 	color: white;
 }
+
+.resource-count {
+	flex-grow: 1;
+	text-align: center;
+	height: 45px;
+	line-height: 50px;
+	color: white;
+	font-size: 20px;
+	border-bottom: 5px solid white;
+	margin-left: 10px;
+	margin-right: 10px;
+}
+
+#time_bar {
+	position: absolute;
+	bottom: 53px;
+	height: 5px;
+	left: 0px;
+	background-color: #fff;
+	z-index: 5;
+	transition: width 0.2s;
+}
+
+#time_bar span {
+	position: absolute;
+	top: -20px;
+	left: 5px;
+	color: white;
+	opacity: 0.5;
+	white-space: nowrap;
+}

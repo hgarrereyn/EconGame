@@ -34,6 +34,12 @@ var MessageHandler = function (ws) {
 			type = 'INITIAL';
 			data = msg.data;
 
+		} else if (msg.data.charCodeAt(0) == 2) {
+
+			//Secret packet
+			type = 'SECRET';
+			data = msg.data;
+
 		} else {
 			var obj = JSON.parse(msg.data);
 

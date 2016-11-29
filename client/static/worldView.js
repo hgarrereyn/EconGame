@@ -5,6 +5,8 @@ var WorldView = function () {
 	this.players = {}
 	this.items = {}
 
+	this.roundProgress = 0;
+
 	this.addPlayers = [];
 	this.addItems = [];
 
@@ -156,6 +158,34 @@ var WorldView = function () {
 
 
 		}
+
+		this.roundProgress = d[i++];
+	}
+
+	this.loadSecret = function (data) {
+		var d = data.split('').map(x => x.charCodeAt(0));
+
+		var i = 1;
+
+		var points = 0;
+		for (var b = 0; b < 4; ++b) {
+			points += (d[i++] << ((3-b) * 8));
+		}
+
+		var inventory = [];
+		for (var inv = 0; inv < 4; ++inv) {
+			inventory.push( (d[i++] << 8) + d[i++] );
+		}
+
+		var technology = d[i++];
+
+		var workers = d[i++];
+
+		var playerView = this.players[CONN_STATE.id];
+		playerView.points = points;
+		playerView.inventory = inventory;
+		playerView.technology = technology;
+		playerView.workers = workers;
 	}
 
 }
@@ -171,6 +201,11 @@ var PlayerView = function (id, nick, pos) {
 	this.trackingActionBar = 0;
 
 	this.killed = false;
+
+	this.points = 100;
+	this.inventory = [0,0,0,0];
+	this.technology = 0;
+	this.workers = 0;
 }
 
 var ItemView = function (id, pos, type) {

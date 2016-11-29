@@ -25,11 +25,23 @@
 					<span>(<span id="track-posX">0</span>, <span id="track-posY">0</span>)</span>
 				</div>
 			</div>
+			<div id="time_bar">
+				<span>Round progress:</span>
+			</div>
 			<div id="info_bar">
 				<div style='float:left;'>
 					<span><span id="track-nick">-</span></span>
 				</div>
-				<div style='float:center;'>
+				<div style='float:right; display:flex; width:50%;'>
+					<div class='resource-count' id='track-points'></div>
+
+					<div class='resource-count' id='track-inv0' style='border-color:#C2412D;'></div>
+					<div class='resource-count' id='track-inv1' style='border-color:#D1AA34;'></div>
+					<div class='resource-count' id='track-inv2' style='border-color:#81A844;'></div>
+					<div class='resource-count' id='track-inv3' style='border-color:#A46583;'></div>
+
+					<div class='resource-count' id='track-technology'></div>
+					<div class='resource-count' id='track-workers'></div>
 				</div>
 			</div>
 		</div>

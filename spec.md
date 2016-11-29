@@ -18,6 +18,16 @@
 		}
 4. Once the server receives the `PROVIDE_NICK` frame it will begin sending game states and listening for client controls.
 
+# Resource types
+
+* 0: red triangle - `#C2412D`
+
+* 1: yellow square - `#D1AA34`
+
+* 2: green circle - `#81A844`
+
+* 3: purple plus - `#A46583`
+
 # Initial Game State
 
 The server will broadcast a frame containing the entire game state after the handshake completes.
@@ -48,7 +58,7 @@ An item initial packet
 
 After the initial game state, the server will broadcast changes to the game state at ~20Hz. These messages can be of varying length but must begin with the following header: `00000000`. Any number of delta packets can be chained after the header in the following format:
 
-    [00000000] [num p] [num i] [pDelta] ... [iDelta] ...
+    [00000000] [num p] [num i] [pDelta] ... [iDelta] ... [round_progress]
 
 ## pDelta
 
@@ -149,3 +159,11 @@ There are five control signals (4 movement and one action). On the keyboard they
 	   ||Right
 	   |Down
 	   Action
+
+# Client Control - Investing
+
+After a client receives a new round packet, the client should refrain from sending movement packets until this packet has been sent. The user must select which investments to make and then click 'ok' in order to send the packet. The format is as follows:
+
+    10000000 [technology] [workers]
+
+`technology` and `workers` represent the level of investment in each category. Both of these values are validated server-side.

@@ -1,3 +1,5 @@
+var Scenario = require('./scenario.js');
+
 //Helper functions
 
 //Encode position per 0.01 units
@@ -23,7 +25,7 @@ function _encodeActionBar (b) {
 
 var _spawnPoints = 100;
 
-var _initialFarmingTime = 5; //5 seconds
+var _initialFarmingTime = 10; //5 seconds
 var _initialInventory = 10; //inventory farmed
 var _inventoryDeviation = 0.2; //inv +- 10%
 
@@ -53,12 +55,10 @@ var World = function (width, height) {
 	this.itemsToRemove = [];
 	this.playersToRemove = [];
 
-	/*
-	 * 0: News/Allocate ()
-	 * 1: Gameplay (3m)
-	 * 2: Results (10s)
-	 */
-	this.state = 0;
+	this.scenario = undefined;
+	this.newRound = false;
+	this.timeElapsed = 0; //time elapsed in this round (in seconds)
+	this.roundDuration = 100; //seconds
 
 	this.spawn = function (id, client) {
 		var pos = this._getPlayerSpawnLocation();
@@ -66,6 +66,12 @@ var World = function (width, height) {
 		this.players[id] = player;
 
 		console.log('World :: Spawned [' + client.nick + '] at [' + pos[0] + ', ' + pos[1] + ']');
+	}
+
+	this.initRound = function () {
+		this.timeElapsed = 0;
+		this.scenario = new Scenario();
+		this.newRound = true; //flag so new round gets broadcast
 	}
 
 	//Temporary
@@ -192,6 +198,25 @@ var World = function (width, height) {
 				player._actionBarChanged = true;
 			}
 		}
+
+		//add time and see if round is over
+		this.timeElapsed += dt;
+
+		if (this.timeElapsed >= this.roundDuration) {
+			//sell player inventories
+
+			for (var id in this.players) {
+				var player = this.players[id];
+				var profit = this.scenario.calculateProfit(player);
+
+				player.points += profit;
+				player.inventory = [0,0,0,0];
+
+				player._secretChanged = true;
+			}
+
+			this.initRound();
+		}
 	}
 
 	this.encodeInitial = function () {
@@ -245,10 +270,13 @@ var World = function (width, height) {
 			}
 		}
 
+		var roundProgress = Math.floor((this.timeElapsed / this.roundDuration) * 100);
+
 		dString += String.fromCharCode(pDeltaCount);
 		dString += String.fromCharCode(iDeltaCount);
 		dString += pDeltaString;
 		dString += iDeltaString;
+		dString += String.fromCharCode(roundProgress);
 
 		return dString;
 	}
@@ -267,7 +295,6 @@ var Item = function (pos, type, id) {
 	this._new = true;
 	this._consumed = false;
 	this.markForDeletion = function () { this._consumed = true; }
-	this._broadcastConsumed = false;
 
 	this.hasDelta = function () {
 		return this._new || this._consumed;
@@ -301,8 +328,6 @@ var Item = function (pos, type, id) {
 			d.push(this.type);
 
 			this._new = false;
-		} else {
-			this._broadcastConsumed = true;
 		}
 
 		return d.map(x => String.fromCharCode(x)).join('');
@@ -311,19 +336,11 @@ var Item = function (pos, type, id) {
 
 //An individual player
 var Player = function (pos, nick, id) {
-	//[x, y]
-	this.pos = pos;
 
-	//not necessarily mutually exclusive
-	this.nick = nick;
-
-	//mutually exclusive (an integer from 0 to max_players - 1)
-	this.id = id;
-
-	//the percentage complete of the action bar
-	this.actionBar = 0; //0(empty) to 1(full)
-
-	//--- Internal/Secret: ---
+	this.pos = pos; //[x, y]
+	this.nick = nick; //not necessarily mutually exclusive
+	this.id = id; //mutually exclusive (an integer from 0 to max_players - 1)
+	this.actionBar = 0; //the percentage complete of the action bar: 0(empty) to 1(full)
 
 	//id of the last item in range (for quicker searching)
 	this._lastItem = -1;
@@ -332,6 +349,9 @@ var Player = function (pos, nick, id) {
 	this.workers = 0; //number of workers
 	this.points = 100; //initial points
 	this.inventory = [0,0,0,0];
+	this._firstRound = true;
+
+	this._confirmedInvestments = false;
 
 	this.controlSignal = {
 		up: false,
@@ -343,19 +363,23 @@ var Player = function (pos, nick, id) {
 
 	this._speed = 1;
 
-	//Helper variables for determining delta packets
+	//DELTA
 	this._posXChanged = false;
 	this._posYChanged = false;
 	this._actionBarChanged = false
 	this._animate = false;
-
-	this._new = true; //starts true
 	this._playerKilled = false; //or disconnected
-	this._broadcastPlayerKilled = false; //true once the kill message has been broadcasted
+	this._new = true; //starts true
+
+	//Animations (TODO: implement these):
+	this._animateResourceComplete = false;
+
 	this.markForDeletion = function () {this._playerKilled = true;}
 
-	//animations:
-	this._animateResourceComplete = false;
+	//SECRET
+	this._secretChanged = false;
+	this._newSecret = true;
+
 
 	this.moveWithBounds = function (dx, dy, x0, y0, width, height) {
 		if (dx != 0) {
@@ -393,10 +417,8 @@ var Player = function (pos, nick, id) {
 
 	this.increaseInventory = function (type) {
 		var farmed = _inventoryFarmed(this.workers);
-
 		this.inventory[type] += farmed;
-
-		console.log(this.inventory);
+		this._secretChanged = true;
 	}
 
 	this.setControlSignal = function (signal) {
@@ -413,17 +435,6 @@ var Player = function (pos, nick, id) {
 		//overridden but not others)
 	}
 
-	this.hasDelta = function () {
-		return (
-			   this._posXChanged
-			|| this._posYChanged
-			|| this._actionBarChanged
-			|| this._playerKilled
-			|| this._animate
-			|| this._new
-		)
-	}
-
 	this.encodeInitial = function () {
 		var d = [];
 
@@ -434,6 +445,17 @@ var Player = function (pos, nick, id) {
 		d.push(..._encodePos(this.pos[1]));
 
 		return d.map(x => String.fromCharCode(x)).join('');
+	}
+
+	this.hasDelta = function () {
+		return (
+			   this._posXChanged
+			|| this._posYChanged
+			|| this._actionBarChanged
+			|| this._animate
+			|| this._playerKilled
+			|| this._new
+		)
 	}
 
 	//Return the player's delta packet as a string
@@ -448,8 +470,6 @@ var Player = function (pos, nick, id) {
 		if (this._playerKilled) {
 			contents += (1 << 7);
 			d.push(contents);
-
-			this._broadcastPlayerKilled = true;
 		} else if (this._new) {
 			contents += (1 << 0); //posX
 			contents += (1 << 1); //posY
@@ -502,6 +522,10 @@ var Player = function (pos, nick, id) {
 		return d.map(x => String.fromCharCode(x)).join('');
 	}
 
+	this.hasSecret = function () {
+		return this._secretChanged || this._newSecret;
+	}
+
 	//Data to be sent to only this player
 	this.encodeSecret = function () {
 		var d = [];
@@ -522,7 +546,14 @@ var Player = function (pos, nick, id) {
 			d.push(inv1, inv2);
 		}
 
-		
+		d.push(this.technology);
+
+		d.push(this.workers);
+
+		this._secretChanged = false;
+		this._newSecret = false;
+
+		return d.map(x => String.fromCharCode(x)).join('');
 	}
 }
 

@@ -30,10 +30,21 @@ var Game = function () {
 		CONN_STATE.messageHandler.registerTrigger('DELTA', function (ws, data) {
 			that.worldView.loadDelta(data);
 
-			//simulate latency
-			//setTimeout(function () {
-			ws.send(that.controller.sample());
-			//}, (Math.random() * 500) + 50);
+			if (that.worldView.canSendControl) {
+				ws.send(that.controller.sample());
+			}
+		});
+
+		CONN_STATE.messageHandler.registerTrigger('SECRET', function (ws, data) {
+			that.worldView.loadSecret(data);
+		});
+
+		CONN_STATE.messageHandler.registerTrigger('ROUND_START', function (ws, data) {
+
+		});
+
+		CONN_STATE.messageHandler.registerTrigger('ROUND_END', function (ws, data) {
+
 		});
 	}
 
@@ -47,6 +58,7 @@ var Game = function () {
 		this.components.border.fill = '#343838';
 		this.components.border.linewidth = 0;
 
+		//Draw the grid
 		var grid = new Two.Group();
 		var miniGrid = new Two.Group();
 
@@ -78,6 +90,7 @@ var Game = function () {
 		this.components.grid = grid;
 		this.components.miniGrid = miniGrid;
 
+		//Set up SVG layers (there is no z-index, layering is determined by DOM order)
 		this.components.itemLayer = new Two.Group();
 		this.components.playerLayer = new Two.Group();
 		this.components.clientPlayerLayer = new Two.Group();
@@ -123,11 +136,25 @@ var Game = function () {
 		$('#track-posX').text(thisPlayer.pos[0].toFixed(2));
 		$('#track-posY').text(thisPlayer.pos[1].toFixed(2));
 
+		$('#time_bar').css({
+			width: that.worldView.roundProgress + '%'
+		});
+
 		//camera "interpolation" - really just averaging the current pos and target pos
 		that.tracking.targetCamera = thisPlayer.pos;
 		that.tracking.currentCamera[0] = (that.tracking.targetCamera[0] * _cameraStiffness) + (that.tracking.currentCamera[0] * (1 - _cameraStiffness));
 		that.tracking.currentCamera[1] = (that.tracking.targetCamera[1] * _cameraStiffness) + (that.tracking.currentCamera[1] * (1 - _cameraStiffness));
 		c.mainFrame.translation.set(-that.tracking.currentCamera[0] * scale + (width / 2), -that.tracking.currentCamera[1] * scale + (height / 2));
+
+		//track inventory & points
+		$('#track-inv0').text(thisPlayer.inventory[0]);
+		$('#track-inv1').text(thisPlayer.inventory[1]);
+		$('#track-inv2').text(thisPlayer.inventory[2]);
+		$('#track-inv3').text(thisPlayer.inventory[3]);
+
+		$('#track-points').text(thisPlayer.points);
+		$('#track-technology').text(thisPlayer.technology);
+		$('#track-workers').text(thisPlayer.workers);
 
 		//Add new players to the scene
 		for (var index in that.worldView.addPlayers) {
@@ -186,7 +213,7 @@ var Game = function () {
 		for (var id in that.worldView.items) {
 			var item = that.worldView.items[id];
 
-			updateItem(c.itemGraphics[id], item, thisPlayer);
+			updateItem(c.itemGraphics[id], item, thisPlayer, scale / _zoom);
 
 			if (item.consumed) {
 				c.itemGraphics[id].parent.remove(c.itemGraphics[id]);
@@ -349,7 +376,7 @@ var Game = function () {
 		_verticesForMask(playerView.trackingActionBar, actionBarMask);
 	}
 
-	function updateItem (itemGraphic, itemView, thisPlayer) {
+	function updateItem (itemGraphic, itemView, thisPlayer, scale) {
 		//check if player is within 0.5 units
 		var dx = thisPlayer.pos[0] - itemView.pos[0];
 		var dy = thisPlayer.pos[1] - itemView.pos[1];
