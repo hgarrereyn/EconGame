@@ -16,6 +16,50 @@ body {
 	display: block;
 }
 
+#lobby_screen {
+	background-color: #343838;
+}
+
+.panel {
+	width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+    color: white;
+    background-color: rgba(0,95,107,0.5);
+    padding: 10px;
+    margin-top: 10px;
+    border: 1px solid white;
+    border-radius: 5px;
+    position: relative;
+}
+
+#nick {
+	outline: none;
+	border: none;
+	padding: 10px;
+	border-radius: 5px;
+	width: 400px;
+}
+
+#play_button {
+	position: absolute;
+	outline: none;
+	border: none;
+	padding: 10px;
+	border-radius: 5px;
+	color: white;
+	cursor: pointer;
+	background-color: #343838;
+	border: 1px solid white;
+	width: 90px;
+	right: 10px;
+	transition: all 0.2s;
+}
+
+#play_button:hover {
+	background-color: #005f6b;
+}
+
 #graphics_panel {
 	position: absolute;
 	top: 0px;
@@ -68,7 +112,7 @@ body {
 }
 
 .resource-count {
-	flex-grow: 1;
+	flex-grow: 0;
 	text-align: center;
 	height: 45px;
 	line-height: 50px;
@@ -77,6 +121,8 @@ body {
 	border-bottom: 5px solid white;
 	margin-left: 10px;
 	margin-right: 10px;
+	padding-left: 15px;
+	padding-right: 15px;
 }
 
 #time_bar {
@@ -96,4 +142,268 @@ body {
 	color: white;
 	opacity: 0.5;
 	white-space: nowrap;
+}
+
+#game_cover {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	bottom: 0px;
+	z-index: 2;
+	background-color: #000;
+	opacity: 0;
+	transition: opacity 0.2s;
+}
+
+#game_cover.show {
+	opacity: 0.5;
+}
+
+#round_panel {
+	position: absolute;
+	top: 50px;
+	bottom: 100px;
+	width: 600px;
+	left: 0px;
+	right: 0px;
+	margin-left: auto;
+	margin-right: auto;
+
+	z-index: 5;
+
+	pointer-events: none;
+	opacity: 0;
+	transition: opacity 0.2s;
+}
+
+#round_panel.show {
+	opacity: 1;
+	pointer-events: all;
+}
+
+#round_info {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+	bottom: 200px;
+}
+
+#last_round {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 290px;
+	bottom: 0px;
+
+	border: 1px solid white;
+
+	background-color: rgba(0,95,107,0.5);
+}
+
+#this_round {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	width: 290px;
+	bottom: 0px;
+
+	border: 1px solid white;
+
+	background-color: rgba(0,95,107,0.5);
+}
+
+#investment_panel {
+	position: absolute;
+	height: 180px;
+	left: 0px;
+	width: 290px;
+	bottom: 0px;
+
+	border: 1px solid white;
+
+	background-color: rgba(0,95,107,0.5);
+}
+
+#workers_panel {
+	position: absolute;
+	height: 90px;
+	top: 0px;
+	left: 0px;
+	right: 0px;
+}
+
+#technology_panel {
+	position: absolute;
+	height: 90px;
+	bottom: 0px;
+	left: 0px;
+	right: 0px;
+}
+
+#confirm_panel {
+	position: absolute;
+    height: 180px;
+    right: 0px;
+    bottom: 0px;
+    border: 1px solid white;
+    width: 290px;
+
+	color: white;
+
+	background-color: rgba(0,95,107,0.5);
+}
+
+#confirm_button {
+	position: absolute;
+	background-color: #005f6b;
+	left: 10px;
+	bottom: 10px;
+	right: 10px;
+	padding: 10px;
+	text-align: center;
+	color: white;
+	cursor: pointer;
+	border: 1px solid white;
+}
+
+#round_info .title {
+	color: white;
+    display: block;
+    text-align: center;
+    padding: 10px;
+    font-size: 20px;
+	position: absolute;
+	left: 0px;
+	right: 0px;
+
+	background-color: #005f6b;
+}
+
+#round_info .title-top {
+    border-bottom: 1px solid white;
+	top: 0px;
+}
+
+#round_info .title-bottom {
+	border-top: 1px solid white;
+	bottom: 0px;
+}
+
+.subtitle {
+	color: white;
+	height: 30px;
+	line-height: 30px;
+}
+
+.flex-container-row {
+	display: flex;
+	flex-direction: column;
+}
+
+.market-container{
+	position: absolute;
+	top: 50px;
+	bottom: 50px;
+	padding-left: 10px;
+	padding-right: 10px;
+	left: 0px;
+	right: 0px;
+}
+
+.market-resource {
+	margin: 2px;
+	border-radius: 5px;
+	border: 1px solid white;
+}
+
+.market-resource.red {
+	background-color: #C2412D;
+}
+
+.market-resource.yellow {
+	background-color: #D1AA34;
+}
+
+.market-resource.green {
+	background-color: #81A844;
+}
+
+.market-resource.purple {
+	background-color: #A46583;
+}
+
+.market-resource.empty {
+	opacity: 0.5;
+}
+
+.flex-row {
+	flex-grow: 1;
+}
+
+.flex-container-column {
+	display: flex;
+	flex-direction: row;
+	color: white;
+	align-items: center;
+}
+
+.flex-item {
+	flex-grow: 1;
+	text-align: center;
+}
+
+.marker {
+	width: 70px;
+	text-align: center;
+}
+
+.note {
+	color: white;
+	font-size: 12px;
+	text-align: center;
+	font-style: italic;
+}
+
+.number-container {
+	display: flex;
+    height: 40px;
+    line-height: 40px;
+    flex-direction: row;
+    border: 1px solid white;
+    top: 20px;
+    position: absolute;
+    left: 20px;
+    right: 20px;
+	color: white;
+	border-radius: 5px;
+}
+
+.number-container .label {
+	flex-grow: 1;
+	text-align: center;
+	background-color: #005f6b;
+	border-top-left-radius: 5px;
+	border-bottom-left-radius: 5px;
+}
+
+.number-container .value {
+	padding-left: 15px;
+	padding-right: 15px;
+}
+
+.number-container .dial {
+	width: 40px;
+	text-align: center;
+	cursor: pointer;
+}
+
+.number-container .dial.left {
+	border-left: 1px solid white;
+	border-right: 1px solid white;
+}
+
+.number-container .dial.right {
+	border-left: 1px solid white;
 }

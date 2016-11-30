@@ -1,6 +1,6 @@
 //List of possible servers
 var servers = [
-	'localhost:3001'
+	'10.0.1.41:3001'
 ];
 
 //An abstraction over the websocket connection
@@ -38,6 +38,17 @@ var MessageHandler = function (ws) {
 
 			//Secret packet
 			type = 'SECRET';
+			data = msg.data;
+
+		} else if (msg.data.charCodeAt(0) == 3) {
+
+			//Round packet
+			type = 'ROUND';
+			data = msg.data;
+
+		} else if (msg.data.charCodeAt(0) == 5) {
+
+			type = 'DEATH';
 			data = msg.data;
 
 		} else {
@@ -96,7 +107,12 @@ function connect(nick, server) {
 
 		messageHandler.registerTrigger('SERVER_FULL', function (ws, data) {
 			console.log("Server full...");
-		})
+		});
+
+		messageHandler.registerTrigger('DEATH', function (ws, data) {
+			alert('Game over: you ran out of money.');
+			location.reload();
+		});
 	}
 
 	ws.onclose = function () {

@@ -1,11 +1,7 @@
 var WorldView = function () {
 
-	this.hasState = false;
-
 	this.players = {}
 	this.items = {}
-
-	this.roundProgress = 0;
 
 	this.addPlayers = [];
 	this.addItems = [];
@@ -13,12 +9,46 @@ var WorldView = function () {
 	this.removePlayers = [];
 	this.removeItems = [];
 
+	this.roundProgress = 0;
+	this.canSendControl = true;
+	this.shouldShowMarket = false;
+	this.playerCount = 0;
+
+	this.baseNews = [];
+	this.news = [];
+
+	//from last round:
+	this.price0 = 0;
+	this.price1 = 0;
+	this.price2 = 0;
+	this.price3 = 0;
+
+	this.priceLabor = 0;
+	this.priceLaborInitial = 0;
+	this.priceCapital = 0;
+	this.priceCapitalInitial = 0;
+	this.priceFixed = 0;
+
+	//from this round:
+	this.newPriceLabor = 0;
+	this.newPriceLaborInitial = 0;
+	this.newPriceCapital = 0;
+	this.newPriceCapitalInitial = 0;
+	this.newPriceFixed = 0;
+
 	this.destroyPlayer = function (id) {
 		delete this.players[id];
 	}
 
 	this.destroyItem = function (id) {
 		delete this.items[id];
+	}
+
+	this.investmentPacket = function (workers, technology) {
+		var d = [0b10000000];
+		d.push(workers);
+		d.push(technology);
+		return d.map(x => String.fromCharCode(x)).join('');
 	}
 
 	this.loadInitial = function (data) {
@@ -57,8 +87,6 @@ var WorldView = function () {
 			this.items[id] = itemView;
 			this.addItems.push(id);
 		}
-
-		this.hasState = true;
 	}
 
 	this.loadDelta = function (data) {
@@ -160,6 +188,8 @@ var WorldView = function () {
 		}
 
 		this.roundProgress = d[i++];
+
+		this.playerCount = d[i++];
 	}
 
 	this.loadSecret = function (data) {
@@ -188,6 +218,45 @@ var WorldView = function () {
 		playerView.workers = workers;
 	}
 
+	this.loadRound = function (data) {
+		//Immobilize the player until an investment packet is sent
+		this.canSendControl = false;
+		this.shouldShowMarket = true;
+
+		var d = data.split('').map(x => x.charCodeAt(0));
+
+		var i = 1;
+
+		this.price0 = d[i++];
+		this.price1 = d[i++];
+		this.price2 = d[i++];
+		this.price3 = d[i++];
+
+		this.priceLaborInitial = d[i++];
+		this.priceLabor = d[i++];
+		this.priceCapitalInitial = d[i++];
+		this.priceCapital = d[i++];
+		this.priceFixed = d[i++];
+
+		this.newPriceLaborInitial = d[i++];
+		this.newPriceLabor = d[i++];
+		this.newPriceCapitalInitial = d[i++];
+		this.newPriceCapital = d[i++];
+		this.newPriceFixed = d[i++];
+
+		var numNews = d[i++];
+
+		var news = [];
+
+		for (var n = 0; n < numNews; ++n) {
+			var length = d[i++];
+
+			news.push(data.substr(i, length));
+			i += length;
+		}
+
+		this.news = news;
+	}
 }
 
 var PlayerView = function (id, nick, pos) {
@@ -206,6 +275,8 @@ var PlayerView = function (id, nick, pos) {
 	this.inventory = [0,0,0,0];
 	this.technology = 0;
 	this.workers = 0;
+
+	this.firstRound = true;
 }
 
 var ItemView = function (id, pos, type) {

@@ -9,12 +9,17 @@
 
 		<div class="screen active" id="lobby_screen">
 			<div class="panel">
-				<h1>Enter a nickname to play:</h1>
+				<h1>EconGame</h1>
 			</div>
 
 			<div class="panel">
 				<input id="nick" type="text"/>
 				<button id="play_button">Play</button>
+			</div>
+
+			<div class="panel">
+				<h1>Instructions</h1>
+
 			</div>
 		</div>
 
@@ -24,24 +29,140 @@
 				<div style='float:left;'>
 					<span>(<span id="track-posX">0</span>, <span id="track-posY">0</span>)</span>
 				</div>
+				<div style='float:right;'>
+					<span>Players connected: <span id='track-playerCount'>0</span></span>
+				</div>
 			</div>
 			<div id="time_bar">
 				<span>Round progress:</span>
 			</div>
 			<div id="info_bar">
-				<div style='float:left;'>
-					<span><span id="track-nick">-</span></span>
-				</div>
-				<div style='float:right; display:flex; width:50%;'>
-					<div class='resource-count' id='track-points'></div>
+				<div style='display:flex; width:100%;'>
+					<div style='flex-grow:2;'><span id="track-nick">-</span></div>
+
+					<div class='resource-count' style='border:none;'>$<span id='track-points'></span></div>
 
 					<div class='resource-count' id='track-inv0' style='border-color:#C2412D;'></div>
 					<div class='resource-count' id='track-inv1' style='border-color:#D1AA34;'></div>
 					<div class='resource-count' id='track-inv2' style='border-color:#81A844;'></div>
 					<div class='resource-count' id='track-inv3' style='border-color:#A46583;'></div>
 
-					<div class='resource-count' id='track-technology'></div>
-					<div class='resource-count' id='track-workers'></div>
+					<div class='resource-count' style='border:none;'><span id='track-technology'></span> tools</div>
+					<div class='resource-count' style='border:none;'><span id='track-workers'></span> workers</div>
+				</div>
+			</div>
+			<div id="game_cover">
+			</div>
+			<div id="round_panel">
+				<div id='round_info'>
+					<div id='last_round'>
+
+						<span class="title title-top">Market</span>
+
+						<div class="flex-container-row market-container">
+
+							<span class="subtitle">Revenue</span>
+
+							<div id='market-res0' class="flex-row market-resource flex-container-column red">
+								<div class='marker red-marker'>Red</div>
+								<div class='flex-item' id='market-inv0'>0</div>
+								<div class='flex-item'>×</div>
+								<div class='flex-item' id='market-price0'>$0</div>
+								<div class='flex-item'>=</div>
+								<div class='flex-item' id='market-rev0'>$0</div>
+							</div>
+
+							<div id='market-res1' class="flex-row market-resource flex-container-column yellow">
+								<div class='marker yellow-marker'>Yellow</div>
+								<div class='flex-item' id='market-inv1'>0</div>
+								<div class='flex-item'>×</div>
+								<div class='flex-item' id='market-price1'>$20</div>
+								<div class='flex-item'>=</div>
+								<div class='flex-item' id='market-rev1'>$0</div>
+							</div>
+
+							<div id='market-res2' class="flex-row market-resource flex-container-column green">
+								<div class='marker green-marker'>Green</div>
+								<div class='flex-item' id='market-inv2'>0</div>
+								<div class='flex-item'>×</div>
+								<div class='flex-item' id='market-price2'>$0</div>
+								<div class='flex-item'>=</div>
+								<div class='flex-item' id='market-rev2'>$800</div>
+							</div>
+
+							<div id='market-res3' class="flex-row market-resource flex-container-column purple">
+								<div class='marker purple-marker'>Purple</div>
+								<div class='flex-item' id='market-inv3'>0</div>
+								<div class='flex-item'>×</div>
+								<div class='flex-item' id='market-price3'>$0</div>
+								<div class='flex-item'>=</div>
+								<div class='flex-item' id='market-rev3'>$0</div>
+							</div>
+
+							<span class="subtitle">Costs</span>
+
+							<div id='market-labor' class="flex-row market-resource flex-container-column">
+								<div class='marker'>Labor</div>
+								<div class='flex-item' id='market-labor-count'>0</div>
+								<div class='flex-item'>×</div>
+								<div class='flex-item' id='market-labor-cost'>$0</div>
+								<div class='flex-item'>=</div>
+								<div class='flex-item' id='market-labor-total'>$0</div>
+							</div>
+
+							<div id='market-capital' class="flex-row market-resource flex-container-column">
+								<div class='marker'>Capital</div>
+								<div class='flex-item' id='market-capital-count'>0</div>
+								<div class='flex-item'>×</div>
+								<div class='flex-item' id='market-capital-cost'>$0</div>
+								<div class='flex-item'>=</div>
+								<div class='flex-item' id='market-capital-total'>$0</div>
+							</div>
+
+							<div id='market-fixed' class="flex-row market-resource flex-container-column">
+								<div class='marker'>Fixed</div>
+								<div class='flex-item' id='market-fixed-count'>1</div>
+								<div class='flex-item'>×</div>
+								<div class='flex-item' id='market-fixed-cost'>$0</div>
+								<div class='flex-item'>=</div>
+								<div class='flex-item' id='market-fixed-total'>$0</div>
+							</div>
+
+							<div class="note">* player is exempt from fixed cost on first round</div>
+
+						</div>
+
+						<span class='title title-bottom'>Profit: <span id='market-profit'>$0</span></span>
+
+					</div>
+					<div id='this_round'>
+
+						<span class="title title-top">News</span>
+
+					</div>
+				</div>
+
+				<div id='investment_panel'>
+					<div id='workers_panel'>
+						<div class='number-container'>
+							<div class='label'>Workers (Labor)</div>
+							<div id='dial-labor-decrease' class='dial left'>-</div>
+							<div id='value-labor' class='value'>0</div>
+							<div id='dial-labor-increase' class='dial right'>+</div>
+						</div>
+					</div>
+					<div id='technology_panel'>
+						<div class='number-container'>
+							<div class='label'>Tools (Capital)</div>
+							<div id='dial-capital-decrease' class='dial left'>-</div>
+							<div id='value-capital' class='value'>0</div>
+							<div id='dial-capital-increase' class='dial right'>+</div>
+						</div>
+					</div>
+				</div>
+
+				<div id='confirm_panel'>
+					<div id='confirm_button'>Confirm</div>
 				</div>
 			</div>
 		</div>

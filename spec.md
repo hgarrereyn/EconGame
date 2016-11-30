@@ -58,7 +58,7 @@ An item initial packet
 
 After the initial game state, the server will broadcast changes to the game state at ~20Hz. These messages can be of varying length but must begin with the following header: `00000000`. Any number of delta packets can be chained after the header in the following format:
 
-    [00000000] [num p] [num i] [pDelta] ... [iDelta] ... [round_progress]
+    [00000000] [num p] [num i] [pDelta] ... [iDelta] ... [round_progress] [player_count]
 
 ## pDelta
 
@@ -137,6 +137,17 @@ The format is the following:
 
     [00000010] [points]x4 [inv res0]-[inv res0] ... [inv res3]-[inv res3] [technology] [workers]
 
+# Market packets
+
+These packets are sent at the start of each round. They contain profits from the previous round and news from this round.
+
+The format is the following:
+
+    [00000011] [price0] [price1] [price2] [price3] [price-labor-initial] [price-labor] [price-capital-initial] [price-capital] [price-fixed] [new price-labor-initial] [new price-labor] [new price-capital-initial] [new price-capital] [new price-fixed] [num news] ([len news] [news]-...) ...
+
+# Death packet
+
+    [00000100]
 
 # Server limits
 

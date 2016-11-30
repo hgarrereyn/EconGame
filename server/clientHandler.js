@@ -69,6 +69,10 @@ var ClientHandler = function (world, maxPlayers) {
 		ch.world.controlSignal(id, data);
 	});
 
+	this.registerTrigger('INVESTMENT', function (id, conn, data) {
+		ch.world.investmentSignal(id, data);
+	});
+
 	this.generatePlayerId = function () {
 		for (var i = 0; i < maxPlayers; ++i) {
 			if (ch.clients[i] == undefined) {
@@ -93,6 +97,9 @@ var ClientHandler = function (world, maxPlayers) {
 
 			if (msg.length == 1){ //control signals are only one byte
 				type = 'CONTROL';
+				data = msg;
+			} else if (msg.charCodeAt(0) == 0b10000000) {
+				type = 'INVESTMENT';
 				data = msg;
 			} else {
 				var obj = JSON.parse(msg);

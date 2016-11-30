@@ -39,12 +39,8 @@ var Game = function () {
 			that.worldView.loadSecret(data);
 		});
 
-		CONN_STATE.messageHandler.registerTrigger('ROUND_START', function (ws, data) {
-
-		});
-
-		CONN_STATE.messageHandler.registerTrigger('ROUND_END', function (ws, data) {
-
+		CONN_STATE.messageHandler.registerTrigger('ROUND', function (ws, data) {
+			that.worldView.loadRound(data);
 		});
 	}
 
@@ -136,6 +132,9 @@ var Game = function () {
 		$('#track-posX').text(thisPlayer.pos[0].toFixed(2));
 		$('#track-posY').text(thisPlayer.pos[1].toFixed(2));
 
+		//set player count
+		$('#track-playerCount').text(that.worldView.playerCount);
+
 		$('#time_bar').css({
 			width: that.worldView.roundProgress + '%'
 		});
@@ -145,16 +144,6 @@ var Game = function () {
 		that.tracking.currentCamera[0] = (that.tracking.targetCamera[0] * _cameraStiffness) + (that.tracking.currentCamera[0] * (1 - _cameraStiffness));
 		that.tracking.currentCamera[1] = (that.tracking.targetCamera[1] * _cameraStiffness) + (that.tracking.currentCamera[1] * (1 - _cameraStiffness));
 		c.mainFrame.translation.set(-that.tracking.currentCamera[0] * scale + (width / 2), -that.tracking.currentCamera[1] * scale + (height / 2));
-
-		//track inventory & points
-		$('#track-inv0').text(thisPlayer.inventory[0]);
-		$('#track-inv1').text(thisPlayer.inventory[1]);
-		$('#track-inv2').text(thisPlayer.inventory[2]);
-		$('#track-inv3').text(thisPlayer.inventory[3]);
-
-		$('#track-points').text(thisPlayer.points);
-		$('#track-technology').text(thisPlayer.technology);
-		$('#track-workers').text(thisPlayer.workers);
 
 		//Add new players to the scene
 		for (var index in that.worldView.addPlayers) {
@@ -222,6 +211,140 @@ var Game = function () {
 			}
 		}
 
+		//track inventory & points
+		$('#track-inv0').text(thisPlayer.inventory[0]);
+		$('#track-inv1').text(thisPlayer.inventory[1]);
+		$('#track-inv2').text(thisPlayer.inventory[2]);
+		$('#track-inv3').text(thisPlayer.inventory[3]);
+
+		$('#track-points').text(thisPlayer.points);
+		$('#track-technology').text(thisPlayer.technology);
+		$('#track-workers').text(thisPlayer.workers);
+
+		//See if the round ended, open up the window
+		if (that.worldView.shouldShowMarket) {
+			that.showMarket(that.worldView, thisPlayer);
+			that.worldView.shouldShowMarket = false;
+		}
+
+	}
+
+	this.showMarket = function (worldView, thisPlayer) {
+		$('#market-inv0').text(thisPlayer.inventory[0]);
+		$('#market-inv1').text(thisPlayer.inventory[1]);
+		$('#market-inv2').text(thisPlayer.inventory[2]);
+		$('#market-inv3').text(thisPlayer.inventory[3]);
+
+		$('#market-price0').text('$' + worldView.price0);
+		$('#market-price1').text('$' + worldView.price1);
+		$('#market-price2').text('$' + worldView.price2);
+		$('#market-price3').text('$' + worldView.price3);
+
+		var rev0 = thisPlayer.inventory[0] * worldView.price0;
+		var rev1 = thisPlayer.inventory[1] * worldView.price1;
+		var rev2 = thisPlayer.inventory[2] * worldView.price2;
+		var rev3 = thisPlayer.inventory[3] * worldView.price3;
+
+		$('#market-rev0').text('$' + rev0);
+		if (rev0 == 0) { $('#market-res0').addClass('empty'); }
+		else { $('#market-res0').removeClass('empty'); }
+
+		$('#market-rev1').text('$' + rev1);
+		if (rev1 == 0) { $('#market-res1').addClass('empty'); }
+		else { $('#market-res1').removeClass('empty'); }
+
+		$('#market-rev2').text('$' + rev2);
+		if (rev2 == 0) { $('#market-res2').addClass('empty'); }
+		else { $('#market-res2').removeClass('empty'); }
+
+		$('#market-rev3').text('$' + rev3);
+		if (rev3 == 0) { $('#market-res3').addClass('empty'); }
+		else { $('#market-res3').removeClass('empty'); }
+
+		var laborTotal = thisPlayer.workers * worldView.priceLabor;
+		var capitalTotal = thisPlayer.technology * worldView.priceCapital;
+
+		$('#market-labor-count').text(thisPlayer.workers);
+		$('#market-labor-cost').text('$' + worldView.priceLabor);
+		$('#market-labor-total').text('$' + laborTotal);
+		if (laborTotal == 0) { $('#market-labor').addClass('empty'); }
+		else { $('#market-labor').removeClass('empty'); }
+
+		$('#market-capital-count').text(thisPlayer.technology);
+		$('#market-capital-cost').text('$' + worldView.priceCapital);
+		$('#market-capital-total').text('$' + capitalTotal);
+		if (capitalTotal == 0) { $('#market-capital').addClass('empty'); }
+		else { $('#market-capital').removeClass('empty'); }
+
+		var fixed = (thisPlayer.firstRound ? 0 : 1);
+		var fixedTotal = (thisPlayer.firstRound ? 0 : worldView.priceFixed);
+		thisPlayer.firstRound = false;
+
+		$('#market-fixed-count').text(fixed);
+		$('#market-fixed-cost').text('$' + worldView.priceFixed);
+		$('#market-fixed-total').text('$' + fixedTotal);
+		if (fixedTotal == 0) { $('#market-fixed').addClass('empty'); }
+		else { $('#market-fixed').removeClass('empty'); }
+
+		var profit = (rev0 + rev1 + rev2 + rev3) - (laborTotal + capitalTotal + fixedTotal);
+		$('#market-profit').text('$' + profit);
+
+		//Dials
+		var workers = thisPlayer.workers;
+		var technology = thisPlayer.technology;
+
+		var initialWorkers = workers;
+		var initialTechnology = technology;
+
+		$('#value-labor').text(workers);
+		$('#value-technology').text(technology);
+
+		$('#dial-labor-decrease').click(function () {
+			if (workers > 0) workers--;
+			$('#value-labor').text(workers);
+			updateConfirm();
+		});
+
+		$('#dial-labor-increase').click(function () {
+			if (workers < 255) workers++;
+			$('#value-labor').text(workers);
+			updateConfirm();
+		});
+
+		$('#dial-capital-decrease').click(function () {
+			if (technology > 0) technology--;
+			$('#value-capital').text(technology);
+			updateConfirm();
+		});
+
+		$('#dial-capital-increase').click(function () {
+			if (technology < 255) technology++;
+			$('#value-capital').text(technology);
+			updateConfirm();
+		});
+
+		function updateConfirm () {
+
+		}
+
+		var that = this;
+		$('#confirm_button').click(function() {
+			that.confirm(workers, technology);
+		});
+
+		$('#game_cover').addClass('show');
+		$('#round_panel').addClass('show');
+	}
+
+	this.confirm = function (workers, technology) {
+		var ws = CONN_STATE._ws;
+		var investmentPacket = that.worldView.investmentPacket(workers, technology);
+		ws.send(investmentPacket);
+
+		this.worldView.canSendControl = true;
+
+		$('#game_cover').removeClass('show');
+		$('#round_panel').removeClass('show');
 	}
 
 	function drawPlayer (two, playerView) {

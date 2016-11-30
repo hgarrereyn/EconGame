@@ -24,10 +24,21 @@ timer.every(50, function (rep) {
 		if (player.hasSecret()) {
 			client.sendRaw(player.encodeSecret());
 		}
+
+		if (player.points <= 0) {
+			//death packet
+			client.sendRaw(String.fromCharCode(5));
+			client._conn.close();
+		}
 	});
 
 	//Simulate world state
 	world.simulate(.05);
+
+	if (world.newRound) {
+		var round = world.encodeRound();
+		clientHandler.broadcastRaw(round);
+	}
 });
 
 

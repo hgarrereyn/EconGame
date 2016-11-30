@@ -11,18 +11,20 @@ var Scenario = function () {
 		'[GREEN] and [PURPLE] are complimentary goods'
 	]
 
+	this.news = [];
+
 	//Market prices for each resource
 	this.marketPrices = [10,10,10,10];
 
 	//Labor - workers
-	this.laborTraining = 10;
-	this.laborWages = 50;
+	this.laborTraining = 100; //labor initial
+	this.laborWages = 500; //labor
 
 	//Capital - technology(speed)
-	this.capitalUpfront = 20;
-	this.capitalMaintenance = 50;
+	this.capitalUpfront = 200; //capital initial
+	this.capitalMaintenance = 500; //capital
 
-	this.baseCost = 100;
+	this.baseCost = 250; //fixed
 
 	//Game constants
 	this.numItems = 1000;
@@ -54,7 +56,7 @@ var Scenario = function () {
 	this.calculateProfit = function (player) {
 		var rev = this.calculateRevenue(player);
 		var costs = this.calculateCosts(player);
-		
+
 		return rev - costs;
 	}
 }

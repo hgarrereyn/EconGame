@@ -56,6 +56,7 @@ var World = function (width, height) {
 	this.playersToRemove = [];
 
 	this.scenario = undefined;
+	this.lastScenario = undefined;
 	this.newRound = false;
 	this.timeElapsed = 0; //time elapsed in this round (in seconds)
 	this.roundDuration = 100; //seconds
@@ -70,8 +71,21 @@ var World = function (width, height) {
 
 	this.initRound = function () {
 		this.timeElapsed = 0;
+		this.lastScenario = this.scenario;
 		this.scenario = new Scenario();
+
+		if (this.lastScenario == undefined) {
+			this.lastScenario = this.scenario;
+		}
+
 		this.newRound = true; //flag so new round gets broadcast
+
+		//freeze all the players
+		for (var id in this.players) {
+			var player = this.players[id];
+
+			player.freeze();
+		}
 	}
 
 	//Temporary
@@ -154,6 +168,34 @@ var World = function (width, height) {
 	this.controlSignal = function (id, data) {
 		var player = this.players[id];
 		player.setControlSignal(data);
+	}
+
+	this.investmentSignal = function (id, data) {
+		var player = this.players[id];
+
+		var d = data.split('').map(x => x.charCodeAt(0));
+
+		var workers = Math.max(Math.min(d[1], 255), 0);
+		var technology = Math.max(Math.min(d[2], 255), 0);
+
+		var oldWorkers = player.workers;
+		var oldTechnology = player.technology;
+
+		var dWorkers = Math.max(workers - oldWorkers, 0);
+		var dTechnology = Math.max(technology - oldTechnology, 0);
+
+		var initialCost = (dWorkers * this.scenario.laborTraining) + (dTechnology * this.scenario.capitalUpfront);
+
+		player.workers = workers;
+		player.technology = technology;
+		player.points -= initialCost;
+
+		player._confirmedInvestments = true;
+		player._secretChanged = true;
+	}
+
+	this.killPlayer = function (id) {
+
 	}
 
 	//Main physics loop
@@ -272,13 +314,50 @@ var World = function (width, height) {
 
 		var roundProgress = Math.floor((this.timeElapsed / this.roundDuration) * 100);
 
+		var count = 0;
+		for (var i in this.players) count++;
+
 		dString += String.fromCharCode(pDeltaCount);
 		dString += String.fromCharCode(iDeltaCount);
 		dString += pDeltaString;
 		dString += iDeltaString;
 		dString += String.fromCharCode(roundProgress);
+		dString += String.fromCharCode(count);
 
 		return dString;
+	}
+
+	this.encodeRound = function () {
+		var d = [3];
+
+		for (var i = 0; i < 4; ++i) {
+			d.push(this.lastScenario.marketPrices[i]);
+		}
+
+		d.push(this.lastScenario.laborTraining);
+		d.push(this.lastScenario.laborWages);
+		d.push(this.lastScenario.capitalUpfront);
+		d.push(this.lastScenario.capitalMaintenance);
+		d.push(this.lastScenario.baseCost);
+
+		d.push(this.scenario.laborTraining);
+		d.push(this.scenario.laborWages);
+		d.push(this.scenario.capitalUpfront);
+		d.push(this.scenario.capitalMaintenance);
+		d.push(this.scenario.baseCost);
+
+		d.push(this.scenario.news.length);
+
+		for (var i in this.scenario.news) {
+			var news = this.scenario.news[i];
+
+			d.push(news.length);
+			d.push(...news.split('').map(x => x.charCodeAt(0)));
+		}
+
+		this.newRound = false;
+
+		return d.map(x => String.fromCharCode(x)).join('');
 	}
 }
 
@@ -351,7 +430,7 @@ var Player = function (pos, nick, id) {
 	this.inventory = [0,0,0,0];
 	this._firstRound = true;
 
-	this._confirmedInvestments = false;
+	this._confirmedInvestments = true; //starts true
 
 	this.controlSignal = {
 		up: false,
@@ -422,17 +501,30 @@ var Player = function (pos, nick, id) {
 	}
 
 	this.setControlSignal = function (signal) {
-		var s = signal.charCodeAt(0);
+		if (this._confirmedInvestments) {
 
-		this.controlSignal.up = s & 1;
-		this.controlSignal.left = (s >> 1) & 1;
-		this.controlSignal.right = (s >> 2) & 1;
-		this.controlSignal.down = (s >> 3) & 1;
-		this.controlSignal.action = (s >> 4) & 1;
+			var s = signal.charCodeAt(0);
+
+			this.controlSignal.up = s & 1;
+			this.controlSignal.left = (s >> 1) & 1;
+			this.controlSignal.right = (s >> 2) & 1;
+			this.controlSignal.down = (s >> 3) & 1;
+			this.controlSignal.action = (s >> 4) & 1;
+
+		}
 
 		//TODO: check for control signals that can't be skipped (for example,
 		//if two of these packets comes in at once, the motion controls can be
 		//overridden but not others)
+	}
+
+	this.freeze = function () {
+		this._confirmedInvestments = false;
+		this.controlSignal.up = false;
+		this.controlSignal.left = false;
+		this.controlSignal.right = false;
+		this.controlSignal.down = false;
+		this.controlSignal.action = false;
 	}
 
 	this.encodeInitial = function () {
