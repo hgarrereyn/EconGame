@@ -1,12 +1,16 @@
 var Game = function () {
 
+	//For reference in callbacks
 	var that = this;
 
+	//Initialize other classes
 	this.controller = new Controller();
 	this.timer = new Timer();
 	this.worldView = new WorldView();
 
 	this.two = undefined;
+
+	this.lastPlayer = undefined;
 
 	this._zoom = 40;
 
@@ -18,6 +22,21 @@ var Game = function () {
 	this.tracking = {
 		currentCamera: [0,0],
 		targetCamera: [0,0]
+	};
+
+	//Labels for DOM elements
+	this.labels = {
+		posX: '',
+		posY: '',
+		points: '',
+		inv0: '',
+		inv1: '',
+		inv2: '',
+		inv3: '',
+		technology: '',
+		workers: '',
+
+		playerCount: ''
 	};
 
 	this.init = function () {
@@ -45,8 +64,8 @@ var Game = function () {
 	}
 
 	this.initGraphics = function () {
-		var game_screen = document.getElementById('game_screen');
-		this.two = new Two({fullscreen: true}).appendTo(game_screen);
+		var graphics_panel = document.getElementById('graphics_panel');
+		this.two = new Two({fullscreen: true}).appendTo(graphics_panel);
 
 		var t = this.two;
 
@@ -108,8 +127,40 @@ var Game = function () {
 		t.play();
 	}
 
+	this.updateLabels = function (thisPlayer) {
+		var labels = this.labels;
+
+		function writeIfChanged (value, elem, ref) {
+			if (labels[elem] !== value) {
+				labels[elem] = value;
+				$(ref).text(value);
+			}
+		}
+
+		writeIfChanged(thisPlayer.pos[0].toFixed(2), 'posX', '#track-posX');
+		writeIfChanged(thisPlayer.pos[1].toFixed(2), 'posY', '#track-posY');
+
+		writeIfChanged(thisPlayer.inventory[0], 'inv0', '#track-inv0');
+		writeIfChanged(thisPlayer.inventory[1], 'inv1', '#track-inv1');
+		writeIfChanged(thisPlayer.inventory[2], 'inv2', '#track-inv2');
+		writeIfChanged(thisPlayer.inventory[3], 'inv3', '#track-inv3');
+
+		writeIfChanged(thisPlayer.points, 'points', '#track-points');
+		writeIfChanged(thisPlayer.technology, 'technology', '#track-technology');
+		writeIfChanged(thisPlayer.workers, 'workers', '#track-workers');
+
+		writeIfChanged(this.worldView.playerCount, 'playerCount', '#track-playerCount');
+
+		/*
+		$('#time_bar').css({
+			width: that.worldView.roundProgress + '%'
+		});
+		*/
+	}
 
 	this.update = function (frame, dt) {
+		//console.time('update');
+
 		//constants
 		var _zoom = that._zoom;
 		var _cameraStiffness = 0.5;
@@ -119,6 +170,11 @@ var Game = function () {
 		var c = that.components;
 		var thisPlayer = that.worldView.players[CONN_STATE.id];
 
+		if (thisPlayer == undefined) {
+			console.log('Game :: Waiting for information packets');
+			return;
+		}
+
 		//window framing
 		var width = t.width;
 		var height = t.height;
@@ -126,23 +182,14 @@ var Game = function () {
 		var scale = (constr_dim / 100) * _zoom;
 
 		//camera tracking
-		c.mainFrame.scale = scale;
-
-		//set coordinate numbers
-		$('#track-posX').text(thisPlayer.pos[0].toFixed(2));
-		$('#track-posY').text(thisPlayer.pos[1].toFixed(2));
-
-		//set player count
-		$('#track-playerCount').text(that.worldView.playerCount);
-
-		$('#time_bar').css({
-			width: that.worldView.roundProgress + '%'
-		});
+		if (c.mainFrame.scale != scale) //TEMP: performance
+			c.mainFrame.scale = scale;
 
 		//camera "interpolation" - really just averaging the current pos and target pos
 		that.tracking.targetCamera = thisPlayer.pos;
 		that.tracking.currentCamera[0] = (that.tracking.targetCamera[0] * _cameraStiffness) + (that.tracking.currentCamera[0] * (1 - _cameraStiffness));
 		that.tracking.currentCamera[1] = (that.tracking.targetCamera[1] * _cameraStiffness) + (that.tracking.currentCamera[1] * (1 - _cameraStiffness));
+
 		c.mainFrame.translation.set(-that.tracking.currentCamera[0] * scale + (width / 2), -that.tracking.currentCamera[1] * scale + (height / 2));
 
 		//Add new players to the scene
@@ -211,15 +258,7 @@ var Game = function () {
 			}
 		}
 
-		//track inventory & points
-		$('#track-inv0').text(thisPlayer.inventory[0]);
-		$('#track-inv1').text(thisPlayer.inventory[1]);
-		$('#track-inv2').text(thisPlayer.inventory[2]);
-		$('#track-inv3').text(thisPlayer.inventory[3]);
-
-		$('#track-points').text(thisPlayer.points);
-		$('#track-technology').text(thisPlayer.technology);
-		$('#track-workers').text(thisPlayer.workers);
+		that.updateLabels(thisPlayer);
 
 		//See if the round ended, open up the window
 		if (that.worldView.shouldShowMarket) {
@@ -227,6 +266,7 @@ var Game = function () {
 			that.worldView.shouldShowMarket = false;
 		}
 
+		//console.timeEnd('update');
 	}
 
 	this.showMarket = function (worldView, thisPlayer) {
@@ -385,6 +425,7 @@ var Game = function () {
 
 		var text = new Two.Text(playerView.nick, 0, 0);
 		text.fill = '#fff';
+		text.translation.set(0, 0.24);
 		g._store.text = text;
 
 		g.add(player, text, actionBarGroup);
@@ -490,8 +531,8 @@ var Game = function () {
 		playerView.trackingPos[1] = (playerView.trackingPos[1] * 0.5) + (playerView.pos[1] * 0.5);
 		playerGraphic.translation.set(playerView.trackingPos[0], playerView.trackingPos[1]);
 
-		playerGraphic._store.text.translation.set(0, 0.24)
-		playerGraphic._store.text.scale = 0.025 / scale;
+		if (playerGraphic._store.text.scale != (0.025 / scale)) //TEMP: looking for perfomance improvements
+			playerGraphic._store.text.scale = 0.025 / scale;
 
 		playerView.trackingActionBar = (playerView.trackingActionBar + playerView.actionBar) / 2;
 		if (playerView.actionBar == 0) playerView.trackingActionBar = 0; //don't loop around once it is finished
@@ -509,9 +550,11 @@ var Game = function () {
 		var within = (0.5 * 0.5) >= dist2;
 
 		if (within) {
-			itemGraphic._store.border.opacity = 0.7;
+			if (itemGraphic._store.border.opacity != 0.7)
+				itemGraphic._store.border.opacity = 0.7;
 		} else {
-			itemGraphic._store.border.opacity = 0;
+			if (itemGraphic._store.border.opacity != 0)
+				itemGraphic._store.border.opacity = 0;
 		}
 	}
 

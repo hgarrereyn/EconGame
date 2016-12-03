@@ -21,7 +21,7 @@ var CONN_STATE = {
 //Hook onto play button
 $('#play_button').click(function () {
 
-	var server = servers[0]; //TODO: pick random server from list (or test each)
+	var server = SERVER_LIST[0]; //TODO: pick random server from list (or test each)
 	var nick = $('#nick').val();
 
 	connect(nick, server);

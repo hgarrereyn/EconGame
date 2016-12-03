@@ -1,8 +1,3 @@
-//List of possible servers
-var servers = [
-	'10.0.1.41:3001'
-];
-
 //An abstraction over the websocket connection
 //Register function triggers based on message type
 var MessageHandler = function (ws) {

@@ -68,6 +68,12 @@ body {
 	bottom: 0px;
 }
 
+#translation_window {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
+
 #info_bar {
 	position: absolute;
 	bottom: 0px;
