@@ -36,8 +36,12 @@ var Game = function () {
 		technology: '',
 		workers: '',
 
-		playerCount: ''
+		playerCount: '',
+		fps: ''
 	};
+
+	this._dt_history = [0,0,0,0,0,0,0,0,0,0]; //Average over ten samples
+	this._fps = 0;
 
 	this.init = function () {
 		that.controller.init();
@@ -150,6 +154,7 @@ var Game = function () {
 		writeIfChanged(thisPlayer.workers, 'workers', '#track-workers');
 
 		writeIfChanged(this.worldView.playerCount, 'playerCount', '#track-playerCount');
+		writeIfChanged(this._fps, 'fps', '#track-fps');
 
 		/*
 		$('#time_bar').css({
@@ -160,6 +165,13 @@ var Game = function () {
 
 	this.update = function (frame, dt) {
 		//console.time('update');
+
+		if (that._dt_history.length < 10) {
+			that._dt_history.push(dt);
+		} else {
+			that._fps = Math.floor(1000 / (that._dt_history.reduce((a,b) => a+b) / 10));
+			that._dt_history = [];
+		}
 
 		//constants
 		var _zoom = that._zoom;
